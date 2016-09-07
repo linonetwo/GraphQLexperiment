@@ -1,10 +1,10 @@
-/* global fetch:false */
 import Promise from 'bluebird';
 import fetch from 'node-fetch';
 
 import {
   USERNAME_USE_BEFORE_SET,
   PASSWORD_USE_BEFORE_SET,
+  API_FAILURE,
 } from './errorTypes';
 
 
@@ -18,7 +18,7 @@ function checkStatus(response) {
 
   const error = new Error(response.statusText);
   error.response = response;
-  throw error;
+  return Promise.reject(API_FAILURE + error.toString());
 }
 
 
@@ -66,12 +66,12 @@ export default class Power51Connector {
     .then(response => response.json())
     .then(json => {
       if (json.code !== 0) {
-        return Promise.reject(json.data.message);
+        return Promise.reject(json.message);
       }
 
       this.setToken(json.token);
       this.metaData = { ...this.metaData, ...json.data };
-      return json.token;
+      return { token: json.token };
     });
   }
 
@@ -89,7 +89,7 @@ export default class Power51Connector {
     )
     .then(json => {
       if (json.data.code === -1) {
-        return Promise.reject(json.data.message);
+        return Promise.reject(json.message);
       }
       return json.data;
     });

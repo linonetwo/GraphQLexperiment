@@ -8,7 +8,7 @@ type RootMutation {
 }
 
 type TokenType {
-  token: String!
+  token: String
   error: String
 }
 
@@ -36,7 +36,7 @@ type AlarmCodeType {
 export const resolvers = {
   RootMutation: {
     getToken(root, { username, password }, context) {
-      return { token: context.User.login(username, password) };
+      return context.User.login(username, password);
     },
   },
   RootQuery: {

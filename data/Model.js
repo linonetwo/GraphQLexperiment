@@ -19,8 +19,13 @@ export class User {
     this.connector = connector;
   }
 
-  login(username, password) {
-    return this.connector.login(username, password);
+  async login(username, password) {
+    try {
+      const { token, error } = await this.connector.login(username, password);
+      return { token };
+    } catch (error) {
+      return { error };
+    }
   }
 
   isLogined() {
