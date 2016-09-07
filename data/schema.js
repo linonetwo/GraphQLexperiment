@@ -13,6 +13,7 @@ type TokenType {
 }
 
 type RootQuery {
+  FortuneCookie: String
   Config: ConfigType
   #User: UserType
   #Company: PowerEntityType
@@ -40,6 +41,9 @@ export const resolvers = {
     },
   },
   RootQuery: {
+    FortuneCookie(root, args, context) {
+      return context.FortuneCookie.getFortuneCookie();
+    },
     Config(root, args, context) {
       return context.Config.getAlarmTypes();
     },

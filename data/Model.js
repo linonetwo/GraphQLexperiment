@@ -1,4 +1,5 @@
 import Promise from 'bluebird';
+import fetch from 'node-fetch';
 
 export class Config {
   constructor({ connector }) {
@@ -38,5 +39,17 @@ export class User {
 
   getPassWord() {
     return this.connector.getPassWord();
+  }
+}
+
+export class FortuneCookie {
+  async getFortuneCookie() {
+    try {
+      const response = await fetch('http://fortunecookieapi.com/v1/cookie');
+      const [{ fortune: { message: fortuneCookie } }] = await response.json();
+      return fortuneCookie;
+    } catch (error) {
+      return error.toString();
+    }
   }
 }
