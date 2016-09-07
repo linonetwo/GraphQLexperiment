@@ -28,7 +28,7 @@ type ConfigType {
 # /api/admin/config
 # 用于设备出问题告警的类型代码与它的实际意义之间的转换
 type AlarmCodeType {
-  code: Int! # 告警类型代码
+  code: String! # 告警类型代码，目前实际上是数字
   label: String! # 给人看的告警信息
 }
 
@@ -71,11 +71,12 @@ export const resolvers = {
     },
   },
   AlarmCodeType: {
-    code(a, b, c) {
-      console.log(a, b, c);
+    code({ code }, args, context) {
+      // RootQuery 中的 Config 返回的东西会被结构，得到一个符合 AlarmCodeType 的对象，传给这里的第一个参数
+      return code;
     },
-    label(a, b, c) {
-      console.log(a, b, c);
+    label({ label }, args, context) {
+      return label;
     },
   },
 };

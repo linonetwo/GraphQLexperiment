@@ -2,8 +2,6 @@ import Promise from 'bluebird';
 import fetch from 'node-fetch';
 
 import {
-  USERNAME_USE_BEFORE_SET,
-  PASSWORD_USE_BEFORE_SET,
   API_FAILURE,
 } from './errorTypes';
 
@@ -25,32 +23,6 @@ function checkStatus(response) {
 
 
 export default class Power51Connector {
-  constructor(token) {
-    this.token = token;
-    this.metaData = {};
-    this.logined = !!this.token;
-  }
-
-  setToken(token) {
-    this.token = token;
-  }
-
-  getUserName() {
-    return this.userName !== undefined
-      ? Promise.resolve(this.userName)
-      : Promise.reject(new Error(USERNAME_USE_BEFORE_SET));
-  }
-
-  getPassWord() {
-    return this.password !== undefined
-      ? Promise.resolve(this.password)
-      : Promise.reject(new Error(PASSWORD_USE_BEFORE_SET));
-  }
-
-  getLoginStatus() {
-    return this.logined;
-  }
-
   login(username, password) {
     return Promise.try(() =>
       fetch(`${POWER51PATH}/api/account/login_app`, {
@@ -62,42 +34,39 @@ export default class Power51Connector {
         body: JSON.stringify({ username, password }),
       })
     )
-    .then(checkStatus)
-    .then(response => response.json())
-    .then(json => {
-      if (json.code !== 0) {
-        return Promise.reject(json.message);
-      }
-
-      this.setToken(json.token);
-      this.metaData = { ...this.metaData, ...json.data };
-      return { token: json.token };
-    });
+      .then(checkStatus)
+      .then(response => response.json())
+      .then(json => {
+        if (json.code !== 0) {
+          return Promise.reject(json.message);
+        }
+        return { token: json.token, metaData: json.data };
+      });
   }
 
   logout() { // 实际上服务端并没有做 logout，每次登陆生成的 token 都会保存 7天
-    this.token = undefined;
-    this.logined = false;
   }
 
-  get(route) {
+  get(route, token) {
     return Promise.try(() =>
-      fetch(`${POWER51PATH}/${route}?token=${this.token}`, {
+      fetch(`${POWER51PATH}/${route}?token=${token}`, {
         method: 'GET',
         headers: {},
       })
     )
-    .then(json => {
-      if (json.data.code === -1) {
-        return Promise.reject(json.message);
-      }
-      return json.data;
-    });
+      .then(checkStatus)
+      .then(response => response.json())
+      .then(json => {
+        if (json.code !== 0) {
+          return Promise.reject(json.message);
+        }
+        return json.data;
+      });
   }
 
-  post(route, data) {
+  post(route, data, token) {
     return Promise.try(() =>
-      fetch(`${POWER51PATH}/${route}?token=${this.token}`, {
+      fetch(`${POWER51PATH}/${route}?token=${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,11 +75,13 @@ export default class Power51Connector {
         body: JSON.stringify(data),
       })
     )
-    .then(json => {
-      if (json.data.code === -1) {
-        return Promise.reject(json.data.message);
-      }
-      return json.data;
-    });
+      .then(checkStatus)
+      .then(response => response.json())
+      .then(json => {
+        if (json.code !== 0) {
+          return Promise.reject(json.message);
+        }
+        return json.data;
+      });
   }
 }
