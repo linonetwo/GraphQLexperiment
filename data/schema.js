@@ -36,8 +36,7 @@ type AlarmCodeType {
 export const resolvers = {
   RootMutation: {
     getToken(root, { username, password }, context) {
-
-      return context.User.login(username, password);
+      return { token: context.User.login(username, password) };
     },
   },
   RootQuery: {
