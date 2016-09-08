@@ -32,5 +32,32 @@ mutation getToken {
 }
 
 
+query aaa {
+  FortuneCookie
+  Config {
+    alarmTypes {
+      code
+      label
+    }
+  }
+  User(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+    logined
+    name
+  }
+  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+    id
+    areaType
+    pie {
+      total
+      current
+      rate
+      unit
+    }
+    children {
+      id
+    }
+  }
+}
+
 
 

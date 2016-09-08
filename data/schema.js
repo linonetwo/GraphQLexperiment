@@ -16,6 +16,7 @@ type RootQuery {
   FortuneCookie: String
   Config: ConfigType
   User(token: String!): UserType
+  Company(token: String!): PowerEntityType
 }
 
 # /api/admin/config
@@ -46,8 +47,6 @@ type UserType {
   departmentId: Int
   departmentName: String
   role: String
-
-  company: PowerEntityType
 }
 
 
@@ -187,6 +186,22 @@ export const resolvers = {
     User(root, { token }, context) {
       return { token };
     },
+    async Company(root, { token }, context) {
+      const powerEntity = {
+        id: await context.User.getMetaData('companyId', token),
+        name: await context.User.getMetaData('companyName', token),
+        address: await context.User.getMetaData('address', token),
+        areaType: 'Company',
+        alarmInfos: await context.PowerEntity.getCompanyAlarm(token),
+        unreadAlarm: await context.PowerEntity.getCompanyAlarmUnread(token),
+        pie: await context.PowerEntity.getCompanyPie(token),
+        children: await context.PowerEntity.getAllDistrictData(token),
+      };
+      return {
+        powerEntity,
+        token,
+      };
+    },
   },
   ConfigType: {
     alarmTypes(_, args, context) {
@@ -236,22 +251,6 @@ export const resolvers = {
     role({ token }, args, context) {
       return context.User.getMetaData('role', token);
     },
-    async company({ token }, args, context) {
-      const powerEntity = {
-        id: await context.User.getMetaData('companyId', token),
-        name: await context.User.getMetaData('companyName', token),
-        address: await context.User.getMetaData('address', token),
-        areaType: 'Company',
-        alarmInfos: await context.PowerEntity.getCompanyAlarm(token),
-        unreadAlarm: await context.PowerEntity.getCompanyAlarmUnread(token),
-        pie: await context.PowerEntity.getCompanyPie(token),
-        children: await context.PowerEntity.getAllDistrictData(token),
-      };
-      return {
-        powerEntity,
-        token,
-      };
-    },
   },
   PowerEntityType: {
     id({ token, powerEntity }, args, context) {
@@ -276,6 +275,7 @@ export const resolvers = {
       return siteID ? context.PowerEntity.getCabinets(siteID, token) : powerEntity.cabinets;
     },
     children({ token, powerEntity }, { areaType, id }, context) {
+      console.log(powerEntity.children[0].children);
       return areaType && id ? context.PowerEntity.getChildren(areaType, id, token) : powerEntity.children;
     },
   },
