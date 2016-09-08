@@ -69,11 +69,11 @@ type PowerEntityType {
 
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
   unreadAlarm: Int
-  pie: pieGraphType
+  pie: PieGraphType
   infos(siteID: Int!): [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires(siteID: Int!): [WireType]
   cabinets(siteID: Int!): [CabinetType]
-  children(areaType: AreaType, id: Int!): [PowerEntityType]
+  children(areaType: AreaType, id: Int): [PowerEntityType]
 }
 
 enum AreaType {
@@ -112,7 +112,7 @@ type AlarmInfoType {
 }
 
 # /api/data/index/pie
-type pieGraphType {
+type PieGraphType {
   total: Int! # 当前负荷，受权限控制影响，此处可能是0
   current: Int! # 总额定负荷，受权限控制影响，此处可能是0
   rate: String!
@@ -189,7 +189,7 @@ export const resolvers = {
     },
   },
   ConfigType: {
-    alarmTypes(_, __, context) {
+    alarmTypes(_, args, context) {
       return context.Config.getAlarmTypes();
     },
   },
@@ -222,7 +222,7 @@ export const resolvers = {
       return context.User.getMetaData('name', token);
     },
     companyId({ token }, args, context) {
-      return context.User.getMetaData('companyID', token);
+      return context.User.getMetaData('companyId', token);
     },
     companyName({ token }, args, context) {
       return context.User.getMetaData('companyName', token);
@@ -237,17 +237,18 @@ export const resolvers = {
       return context.User.getMetaData('role', token);
     },
     async company({ token }, args, context) {
+      const powerEntity = {
+        id: await context.User.getMetaData('companyId', token),
+        name: await context.User.getMetaData('companyName', token),
+        address: await context.User.getMetaData('address', token),
+        areaType: 'Company',
+        alarmInfos: await context.PowerEntity.getCompanyAlarm(token),
+        unreadAlarm: await context.PowerEntity.getCompanyAlarmUnread(token),
+        pie: await context.PowerEntity.getCompanyPie(token),
+        children: await context.PowerEntity.getAllDistrictData(token),
+      };
       return {
-        powerEntity: {
-          id: await context.User.getMetaData('companyID', token),
-          name: await context.User.getMetaData('companyName', token),
-          address: await context.User.getMetaData('address', token),
-          areaType: 'Company',
-          alarmInfos: await context.PowerEntity.getCompanyAlarm(token),
-          unreadAlarm: await context.PowerEntity.getCompanyAlarmUnread(token),
-          pie: await context.PowerEntity.getCompanyPie(token),
-          children: await context.PowerEntity.getAllDistrictData(token),
-        },
+        powerEntity,
         token,
       };
     },
@@ -265,20 +266,26 @@ export const resolvers = {
     pie({ token, powerEntity }, args, context) {
       return powerEntity.pie;
     },
-    infos({ token }, { siteID }, context) {
-      return context.PowerEntity.getSiteInfos(siteID, token);
+    infos({ token, powerEntity }, { siteID }, context) {
+      return siteID ? context.PowerEntity.getSiteInfos(siteID, token) : powerEntity.infos;
     },
-    wires({ token }, { siteID }, context) {
-      return context.PowerEntity.getWires(siteID, token);
+    wires({ token, powerEntity }, { siteID }, context) {
+      return siteID ? context.PowerEntity.getWires(siteID, token) : powerEntity.wires;
     },
-    cabinets({ token }, { siteID }, context) {
-      return context.PowerEntity.getCabinets(siteID, token);
+    cabinets({ token, powerEntity }, { siteID }, context) {
+      return siteID ? context.PowerEntity.getCabinets(siteID, token) : powerEntity.cabinets;
     },
-    children({ token }, { areaType, id }, context) {
-      return context.PowerEntity.getChildren(areaType, id, token);
+    children({ token, powerEntity }, { areaType, id }, context) {
+      return areaType && id ? context.PowerEntity.getChildren(areaType, id, token) : powerEntity.children;
     },
   },
-  pieGraphType: {
+  AlarmInfoType: {
+    id: property('id'),
+    code: property('code'),
+    timestamp: property('timestamp'),
+    readed: property('readed'),
+  },
+  PieGraphType: {
     total: property('total'),
     current: property('current'),
     rate: property('rate'),
@@ -305,13 +312,13 @@ export const resolvers = {
     id: property('id'),
     name: property('name'),
     realtimeData: property('realtimeData'),
-    alarmInfos: property('alarmInfos'), 
+    alarmInfos: property('alarmInfos'),
   },
   SwitchType: {
     id: property('id'),
     name: property('name'),
     realtimeData: property('realtimeData'),
     alarmInfos: property('alarmInfos'),
-    isOn: property('value'),    
+    isOn: property('value'),
   }
 };

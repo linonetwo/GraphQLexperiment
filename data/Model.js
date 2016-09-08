@@ -61,14 +61,14 @@ export class User {
   async getAllMetaData(token) {
     if (_.isEmpty(this.metaData[token]) || !this.metaData[token].lastUpdate || moment(this.metaData[token].lastUpdate) < moment().subtract(1, 'hours')) {
       const metaData = await this.connector.get('/api/account/whoami', token);
-      this.metaData[token] = { ...this.metaData[token], ...metaData, lastUpdate: moment().utc().format() };
+      this.metaData[token] = { ...this.metaData[token], metaData, lastUpdate: moment().utc().format() };
     }
-    return this.metaData[token];
+    return this.metaData[token].metaData;
   }
 
   getMetaData(field, token) {
     return this.getAllMetaData(token)
-      .then(meta => _.has(meta, field) ? meta[field] : Promise.reject(new Error(MODEL_DONT_HAVE_THIS_FIELD)));
+      .then(meta => _.has(meta, field) ? meta[field] : Promise.reject(new Error(MODEL_DONT_HAVE_THIS_FIELD + ' : ' + field)));
   }
 
   async login(username, password) {
@@ -79,7 +79,7 @@ export class User {
       this.password[token] = password;
 
       const { metaData } = await this.connector.get('/api/account/whoami', token);
-      this.metaData[token] = { ...this.metaData[token], ...metaData, lastUpdate: moment().utc().format() };
+      this.metaData[token] = { ...this.metaData[token], metaData, lastUpdate: moment().utc().format() };
 
       return { token };
     } catch (error) {
@@ -98,11 +98,11 @@ export class PowerEntity {
   }
 
   async getAllDistrictData(token) {
-    if (_.isEmpty(this.districts[token]) || !this.districts[token].lastUpdate || moment(this.districts[token].lastUpdate) < moment().subtract(1, 'hours')) {
+    if (_.isEmpty(this.districts[token]) || _.isEmpty(this.districts[token].districtsDatas) || !this.districts[token].lastUpdate || moment(this.districts[token].lastUpdate) < moment().subtract(1, 'hours')) {
       const districtsDatas: Array<Object> = await this.connector.get('/api/info/entry', token);
-      this.districts[token] = districtsDatas;
+      this.districts[token] = {...this.districts[token], lastUpdate: moment().utc().format(), districtsDatas};
     }
-    return this.districts[token];
+    return this.districts[token].districtsDatas;
   }
 
   getCompanyPie(token) {
@@ -119,11 +119,14 @@ export class PowerEntity {
   }
 
   async getAllSiteOverview(siteID, token) {
-    if (_.isEmpty(this.districts[token]) || !this.districts[token].lastUpdate || moment(this.districts[token].lastUpdate) < moment().subtract(10, 'seconds')) {
+    if (_.isEmpty(this.districts[token])) {
+      this.siteInfos[token] = {};
+    } 
+    if (_.isEmpty(this.districts[token][siteID]) || _.isEmpty(this.districts[token][siteID].overview) || !this.districts[token][siteID].lastUpdate || moment(this.districts[token][siteID].lastUpdate) < moment().subtract(10, 'seconds')) {
       const { infos, wires } = this.connector.get(`/api/data/site/${siteID}/overview`, token);
-      this.siteInfos[token] = { infos, wires };
+      this.siteInfos[token][siteID] = {...this.siteInfos[token][siteID], overview: { infos, wires }, lastUpdate: moment().utc().format()};
     }
-    return this.siteInfos[token];
+    return this.siteInfos[token][siteID].overview;
   }
 
   getSiteInfos(siteID, token) {
