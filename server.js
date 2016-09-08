@@ -2,7 +2,7 @@ import express from 'express';
 import { apolloServer } from 'graphql-tools';
 import { typeDefinitions, resolvers } from './data/schema';
 import Power51Connector from './data/Poser51Connector';
-import { User, Config, FortuneCookie } from './data/Model';
+import { User, Config, PowerEntity, FortuneCookie } from './data/Model';
 
 const fs = require('fs');
 const babelrc = fs.readFileSync('./.babelrc');
@@ -29,6 +29,7 @@ graphQLServer.use('/graphql', apolloServer({
   context: {
     Config: new Config({ connector: serverConnector }),
     User: new User({ connector: serverConnector }),
+    PowerEntity: new PowerEntity({ connector: serverConnector }),
     FortuneCookie: new FortuneCookie(),
   },
 }));

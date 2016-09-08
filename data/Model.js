@@ -35,11 +35,15 @@ export class User {
     this.username = {};
     this.password = {};
     this.metaData = {};
-    this.logined = {};
   }
 
-  getLoginStatus(token) {
-    return !!this.logined[token];
+  async getLoginStatus(token) {
+    try {
+      const meta = await this.getLoginStatus();
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   getUserName(token) {
@@ -55,14 +59,11 @@ export class User {
   }
 
   async getAllMetaData(token) {
-    console.log(1, this.metaData);
-
     if (_.isEmpty(this.metaData[token]) || !this.metaData[token].lastUpdate || moment(this.metaData[token].lastUpdate) < moment().subtract(1, 'hours')) {
       const metaData = await this.connector.get('/api/account/whoami', token);
-      console.log(2, metaData)
       this.metaData[token] = { ...this.metaData[token], ...metaData, lastUpdate: moment().utc().format() };
     }
-    return Promise.resolve(this.metaData[token]);
+    return this.metaData[token];
   }
 
   getMetaData(field, token) {
@@ -79,13 +80,80 @@ export class User {
 
       const { metaData } = await this.connector.get('/api/account/whoami', token);
       this.metaData[token] = { ...this.metaData[token], ...metaData, lastUpdate: moment().utc().format() };
-      this.logined[token] = true;
 
       return { token };
     } catch (error) {
       return { error };
     }
   }
+}
+
+
+export class PowerEntity {
+  constructor({ connector }) {
+    this.connector = connector;
+    this.districts = {};
+    this.siteInfos = {};
+    this.modules = {};
+  }
+
+  async getAllDistrictData(token) {
+    if (_.isEmpty(this.districts[token]) || !this.districts[token].lastUpdate || moment(this.districts[token].lastUpdate) < moment().subtract(1, 'hours')) {
+      const districtsDatas: Array<Object> = await this.connector.get('/api/info/entry', token);
+      this.districts[token] = districtsDatas;
+    }
+    return this.districts[token];
+  }
+
+  getCompanyPie(token) {
+    return this.connector.get('/api/data/index/pie', token);
+  }
+
+  getCompanyAlarm(token, nextPage = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/company?pz=${pageSize}&pi=${nextPage}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  }
+
+  getCompanyAlarmUnread(token): Promise<number> {
+    return this.connector.get('/api/alarm/unread_quantity', token)
+      .then(obj => obj.count);
+  }
+
+  async getAllSiteOverview(siteID, token) {
+    if (_.isEmpty(this.districts[token]) || !this.districts[token].lastUpdate || moment(this.districts[token].lastUpdate) < moment().subtract(10, 'seconds')) {
+      const { infos, wires } = this.connector.get(`/api/data/site/${siteID}/overview`, token);
+      this.siteInfos[token] = { infos, wires };
+    }
+    return this.siteInfos[token];
+  }
+
+  getSiteInfos(siteID, token) {
+    return this.getAllSiteOverview(siteID, token)
+      .then(obj => obj.infos);
+  }
+
+  getWires(siteID, token) {
+    return this.getAllSiteOverview(siteID, token)
+      .then(obj => obj.wires);
+  }
+
+  getCabinets(siteID, token) {
+    return this.connector.get(`/api/data/site/${siteID}/cabinets/switches`, token);
+  }
+
+  getChildren(areaType, id, token) {
+    switch (areaType) {
+      case 'Company':
+        return this.getAllDistrictData(token);
+      case 'District':
+        return this.getAllDistrictData(token)
+          .then(districts => _.findIndex(districts, obj => obj.id === id));
+      case 'Site':
+        return this.getCabinets(token);
+      default:
+        return [];
+    }
+  }
+
 }
 
 export class FortuneCookie {
