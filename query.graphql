@@ -31,21 +31,7 @@ mutation getToken {
   }
 }
 
-# /api/account/whoami
-type UserType {
-  logined: Boolean!
-  username: String!
-  password: String!
 
-  id: Int!
-  name: String!
-
-  companyId: Int
-  companyName: String
-  departmentId: Int
-  departmentName: String
-  role: String
-}
 
 # /api/info/entry  /api/data/site/{id}/overview
 # 厂区信息，说明还有它有哪些变电站或子厂区，厂区有自己的饼图数据

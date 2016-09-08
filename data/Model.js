@@ -1,11 +1,15 @@
 import Promise from 'bluebird';
 import fetch from 'node-fetch';
+import _ from 'lodash';
+import moment from 'moment';
 
 import {
   USERNAME_USE_BEFORE_SET,
   PASSWORD_USE_BEFORE_SET,
   TOKEN_USE_BEFORE_SET,
+  USERMETA_USE_BEFORE_SET,
   API_FAILURE,
+  MODEL_DONT_HAVE_THIS_FIELD,
 } from './errorTypes';
 
 export class Config {
@@ -28,57 +32,59 @@ export class Config {
 export class User {
   constructor({ connector }) {
     this.connector = connector;
-    this.token = '';
+    this.username = {};
+    this.password = {};
     this.metaData = {};
-    this.logined = !!this.token;
+    this.logined = {};
   }
 
-  getLoginStatus() {
-    return this.logined;
+  getLoginStatus(token) {
+    return !!this.logined[token];
   }
 
-  getUserName() {
-    return this.metaData.userName !== undefined
-      ? Promise.resolve(this.metaData.userName)
+  getUserName(token) {
+    return !!this.userName[token]
+      ? Promise.resolve(this.userName[token])
       : Promise.reject(new Error(USERNAME_USE_BEFORE_SET));
   }
 
-  getPassWord() {
-    return this.metaData.password !== undefined
-      ? Promise.resolve(this.metaData.password)
+  getPassWord(token) {
+    return !!this.password[token]
+      ? Promise.resolve(this.password[token])
       : Promise.reject(new Error(PASSWORD_USE_BEFORE_SET));
   }
 
-  getToken(token) {
-    return this.token !== undefined
-      ? Promise.resolve(this.token)
-      : Promise.reject(new Error(TOKEN_USE_BEFORE_SET));
+  async getAllMetaData(token) {
+    console.log(1, this.metaData);
+
+    if (_.isEmpty(this.metaData[token]) || !this.metaData[token].lastUpdate || moment(this.metaData[token].lastUpdate) < moment().subtract(1, 'hours')) {
+      const metaData = await this.connector.get('/api/account/whoami', token);
+      console.log(2, metaData)
+      this.metaData[token] = { ...this.metaData[token], ...metaData, lastUpdate: moment().utc().format() };
+    }
+    return Promise.resolve(this.metaData[token]);
+  }
+
+  getMetaData(field, token) {
+    return this.getAllMetaData(token)
+      .then(meta => _.has(meta, field) ? meta[field] : Promise.reject(new Error(MODEL_DONT_HAVE_THIS_FIELD)));
   }
 
   async login(username, password) {
-    this.metaData = { ...this.metaData, username, password };
-
     try {
-      const { token, metaData, error } = await this.connector.login(username, password);
-      this.token = token;
-      this.metaData = { ...this.metaData, ...metaData };
-      this.logined = true;
+      const { token, error } = await this.connector.login(username, password);
+
+      this.username[token] = username;
+      this.password[token] = password;
+
+      const { metaData } = await this.connector.get('/api/account/whoami', token);
+      this.metaData[token] = { ...this.metaData[token], ...metaData, lastUpdate: moment().utc().format() };
+      this.logined[token] = true;
+
       return { token };
     } catch (error) {
       return { error };
     }
-  }
-
-  isLogined() {
-    return this.connector.getLoginStatus();
-  }
-
-  getUserName() {
-    return this.connector.getUserName();
-  }
-
-  getPassWord() {
-    return this.connector.getPassWord();
   }
 }
 

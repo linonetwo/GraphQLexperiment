@@ -15,7 +15,7 @@ type TokenType {
 type RootQuery {
   FortuneCookie: String
   Config: ConfigType
-  #User: UserType
+  User(token: String!): UserType
   #Company: PowerEntityType
 }
 
@@ -30,6 +30,23 @@ type ConfigType {
 type AlarmCodeType {
   code: String! # 告警类型代码，目前实际上是数字
   label: String! # 给人看的告警信息
+}
+
+# /api/account/whoami
+type UserType {
+  logined: Boolean
+  username: String
+  password: String
+  token: String
+
+  id: Int!
+  name: String!
+
+  companyId: Int
+  companyName: String
+  departmentId: Int
+  departmentName: String
+  role: String
 }
 
 `;
@@ -47,23 +64,9 @@ export const resolvers = {
     Config(root, args, context) {
       return context.Config.getAlarmTypes();
     },
-    // User: {
-    //   logined(root, args, context) {
-    //     return context.User.isLogined();
-    //   },
-    //   username(root, args, context) {
-    //     return context.User.getUserName();
-    //   },
-    //   password(root, args, context) {
-    //     return context.User.getPassWord();
-    //   },
-    //   id(root, args, context) {
-    //     return context.User.getID();
-    //   },
-    //   name(root, args, context) {
-    //     return context.User.getName();
-    //   },
-    // },
+    User(root, { token }, context) {
+      return { token };
+    },
   },
   ConfigType: {
     alarmTypes(_, __, context) {
@@ -77,6 +80,41 @@ export const resolvers = {
     },
     label({ label }, args, context) {
       return label;
+    },
+  },
+  UserType: {
+    logined({ token }, args, context) {
+      return context.User.getLoginStatus(token);
+    },
+    username({ token }, args, context) {
+      return context.User.getUserName(token);
+    },
+    password({ token }, args, context) {
+      return context.User.getPassWord(token);
+    },
+    token({ token }, args, context) {
+      return token;
+    },
+    id({ token }, args, context) {
+      return context.User.getMetaData('id', token);
+    },
+    name({ token }, args, context) {
+      return context.User.getMetaData('name', token);
+    },
+    companyId({ token }, args, context) {
+      return context.User.getMetaData('companyID', token);
+    },
+    companyName({ token }, args, context) {
+      return context.User.getMetaData('companyName', token);
+    },
+    departmentId({ token }, args, context) {
+      return context.User.getMetaData('departmentId', token);
+    },
+    departmentName({ token }, args, context) {
+      return context.User.getMetaData('departmentName', token);
+    },
+    role({ token }, args, context) {
+      return context.User.getMetaData('role', token);
     },
   },
 };

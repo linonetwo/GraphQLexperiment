@@ -1,5 +1,4 @@
 {
-  "extends": "airbnb",
   "parser": "babel-eslint",
   "parserOptions": {
     "ecmaFeatures": {
@@ -23,7 +22,6 @@
         "SwitchCase": 1
       }
     ],
-    "react/jsx-boolean-value": 0,
     "consistent-return": 0,
     "no-unused-vars": 0,
     "no-confusing-arrow": 0,
