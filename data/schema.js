@@ -75,7 +75,7 @@ type CompanyType implements PowerEntityType {
   companyId: Int
 
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
-  unreadAlarm: Int
+  unreadAlarmAmount: Int
   pie: PieGraphType
   children: [DistrictType]
 }
@@ -109,10 +109,10 @@ type SiteType implements PowerEntityType {
 
   pie: PieGraphType
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
-  unreadAlarm: Int
-  infos(siteID: Int!): [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
-  wires(siteID: Int!): [WireType]
-  cabinets(siteID: Int!): [CabinetType]
+  unreadAlarmAmount: Int
+  infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
+  wires: [WireType]
+  cabinets: [CabinetType]
 }
 
 
@@ -138,7 +138,9 @@ type AlarmInfoType {
   code: String! # 警告编号 实际上是一个数字
   timestamp: String! # 警告时间，类似「2016-07-01 00:00:00」
   readed: Boolean! # 已读
+  message: String
 
+  userId: Int
   districtId: Int # 厂区ID
   districtName: String # 厂区名称
   siteId: Int # 变电站ID
@@ -183,10 +185,17 @@ type CabinetType {
   name: String! # 柜子名
   type: String! # 「d01」这样的柜子类型
   address: String! # 「1-2-1-3」 这样的柜号
+  children: [CabinetType]
   devices: [DeviceType]
-  switches: [SwitchType] # 似乎开关也是设备的一种，我得去问清楚
+  switches: [[SwitchType]] # 似乎开关也是设备的一种，我得去问清楚
   sortId: String # 有时间问问加这个是想干嘛
   wire: String # 意义不明
+
+  districtId: Int
+  siteId: Int
+  gatewayId: Int
+  cabinetId: Int
+  companyId: Int
 }
 
 # /api/info/site/{id}/cabinets  /api/data/device/{id}/realtime
@@ -194,6 +203,7 @@ interface DeviceType {
   id: Int!
   name: String! # 给设备取的名字
   realtimeData: [InfoType!] # 设备的实时数据
+  unreadAlarmAmount: Int
   alarmInfos(pagesize: Int!, pageIndex: Int!, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType!]  
 }
 
@@ -203,6 +213,7 @@ type SwitchType implements DeviceType {
   id: Int!
   name: String! # 给设备取的名字
   realtimeData: [InfoType!] # 设备的实时数据
+  unreadAlarmAmount: Int
   alarmInfos(pagesize: Int!, pageIndex: Int!, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType!]  
   isOn: Boolean # 开还是关，后端叫它 value
 }
@@ -323,7 +334,7 @@ export const resolvers = {
     alarmInfos({ token, powerEntity }, args, context) {
       return powerEntity.alarmInfos;
     },
-    unreadAlarm({ token, powerEntity }, args, context) {
+    unreadAlarmAmount({ token, powerEntity }, args, context) {
       return powerEntity.unreadAlarm;
     },
     pie({ token, powerEntity }, args, context) {
@@ -372,27 +383,41 @@ export const resolvers = {
     alarmInfos(powerEntity, args, context) {
       return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token);
     },
-    unreadAlarm({ token, powerEntity }, args, context) {
-      return context.PowerEntity.getSiteAlarmUnread(powerEntity.id, powerEntity.token);
+    unreadAlarmAmount(powerEntity, args, context) {
+      return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
     },
     pie(powerEntity, args, context) {
       return context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
     },
-    infos(powerEntity, { siteID }, context) {
-      return siteID ? context.PowerEntity.getSiteInfos(siteID, token) : powerEntity.infos;
+    infos(powerEntity, args, context) {
+      return context.PowerEntity.getSiteInfos(powerEntity.id, powerEntity.token);
     },
-    wires(powerEntity, { siteID }, context) {
-      return siteID ? context.PowerEntity.getWires(siteID, token) : powerEntity.wires;
+    wires(powerEntity, args, context) {
+      return context.PowerEntity.getWires(powerEntity.id, powerEntity.token);
     },
-    cabinets(powerEntity, { siteID }, context) {
-      return siteID ? context.PowerEntity.getCabinets(siteID, token) : powerEntity.cabinets;
+    async cabinets(powerEntity, args, context) {
+      const cabinets = await context.PowerEntity.getCabinets(powerEntity.id, powerEntity.token);
+      const cabinetsWithToken = cabinets.map(cabinet => Object.assign({}, cabinet, { token: powerEntity.token }));
+      return cabinetsWithToken;
     },
   },
   AlarmInfoType: {
-    id: property('id'),
+    id: property('alarmId'),
     code: property('code'),
-    timestamp: property('timestamp'),
+    timestamp: property('time'),
     readed: property('readed'),
+    message: property('message'),
+    userId: property('userId'),
+    districtId: property('districtId'),
+    districtName: property('districtName'),
+    siteId: property('siteId'),
+    siteName: property('siteName'),
+    gatewayId: property('gatewayId'),
+    gatewayName: property('gatewayName'),
+    cabinetId: property('cabinetId'),
+    cabinetName: property('cabinetName'),
+    deviceId: property('deviceId'),
+    deviceName: property('deviceName'),
   },
   PieGraphType: {
     total: property('total'),
@@ -413,20 +438,34 @@ export const resolvers = {
     type: property('type'),
     address: property('address'),
     devices: property('devices'),
-    switches: property('switches'),
+    children: property('children'),
+    async switches(cabinet, args, context) {
+      const switches = await context.PowerEntity.getSwitches(cabinet.siteId, cabinet.token);
+      const switchesWithToken = switches.map(switchGroup => switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token })));
+      return switchesWithToken;
+    },
     sortId: property('sortId'),
     wire: property('wire'),
+    siteId: property('siteId'),
+    districtId: property('districtId'),
+    gatewayId: property('gatewayId'),
+    companyId: property('companyId'),
   },
   DeviceType: {
     id: property('id'),
     name: property('name'),
-    realtimeData: property('realtimeData'),
+    realtimeData(device, args, context) {
+      return context.PowerEntity.getRealtimeData(device.id, device.token);
+    },
     alarmInfos: property('alarmInfos'),
   },
   SwitchType: {
     id: property('id'),
     name: property('name'),
-    realtimeData: property('realtimeData'),
+    realtimeData(aswitch, args, context) {
+      console.log(aswitch)
+      return context.PowerEntity.getRealtimeData(aswitch.id, aswitch.token);
+    },
     alarmInfos: property('alarmInfos'),
     isOn: property('value'),
   }

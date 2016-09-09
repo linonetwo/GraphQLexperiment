@@ -99,9 +99,8 @@ export class PowerEntity {
 
   async getAllDistrictData(token) {
     const districtsDatas: Array<Object> = await this.connector.get('/api/info/entry', token);
-    this.districts[token] = districtsDatas;
 
-    return this.districts[token];
+    return districtsDatas;
   }
 
   getCompanyPie(token) {
@@ -122,10 +121,8 @@ export class PowerEntity {
   }
 
   async getAllSiteOverview(siteID, token) {
-    const { infos, wires } = this.connector.get(`/api/data/site/${siteID}/overview`, token);
-    this.siteInfos[token][siteID] = { infos, wires };
-
-    return this.siteInfos[token][siteID];
+    const { infos, wires } = await this.connector.get(`/api/data/site/${siteID}/overview`, token);
+    return { infos, wires };
   }
 
   getSitePie(siteID, token) {
@@ -136,8 +133,8 @@ export class PowerEntity {
     return this.connector.get(`/api/alarm/site/${siteID}?pz=${pageSize}&pi=${nextPage}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
   }
 
-  getSiteAlarmUnread(siteID, token): Promise<number> {
-    return this.connector.get('/api/alarm/unread_quantity/site/${siteID}', token)
+  getSiteAlarmUnreadAmount(siteID, token): Promise<number> {
+    return this.connector.get(`/api/alarm/unread_quantity/site/${siteID}`, token)
       .then(obj => obj.count);
   }
 
@@ -152,7 +149,16 @@ export class PowerEntity {
   }
 
   getCabinets(siteID, token) {
-    return this.connector.get(`/api/data/site/${siteID}/cabinets/switches`, token);
+    return this.connector.get(`/api/info/site/${siteID}/cabinets`, token);
+  }
+
+  getSwitches(siteID, token) {
+    return this.connector.get(`/api/data/site/${siteID}/cabinets/switches`, token)
+      .then(list => list.map(cabinet => cabinet.switches));
+  }
+
+  getRealtimeData(deviceID, token) {
+    return this.connector.get(`/api/data/device/${deviceID}/realtime`, token)
   }
 
   getChildren(areaType, id, token) {
