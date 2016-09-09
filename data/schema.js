@@ -74,7 +74,7 @@ type CompanyType implements PowerEntityType {
   coordinate: String
   companyId: Int
 
-  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   unreadAlarmAmount: Int
   pie: PieGraphType
   children: [DistrictType]
@@ -108,7 +108,7 @@ type SiteType implements PowerEntityType {
   siteId: Int
 
   pie: PieGraphType
-  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   unreadAlarmAmount: Int
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
@@ -204,7 +204,7 @@ interface DeviceType {
   name: String! # 给设备取的名字
   realtimeData: [InfoType!] # 设备的实时数据
   unreadAlarmAmount: Int
-  alarmInfos(pagesize: Int!, pageIndex: Int!, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType!]  
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
 }
 
 # /api/data/site/{id}/cabinets/switches
@@ -214,13 +214,13 @@ type SwitchType implements DeviceType {
   name: String! # 给设备取的名字
   realtimeData: [InfoType!] # 设备的实时数据
   unreadAlarmAmount: Int
-  alarmInfos(pagesize: Int!, pageIndex: Int!, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType!]  
-  isOn: Boolean # 开还是关，后端叫它 value
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
+  isOn: Boolean! # 开还是关，后端叫它 value
 }
 
 `;
 
-import { property } from 'lodash';
+import { property, isEmpty } from 'lodash';
 
 export const resolvers = {
   RootMutation: {
@@ -248,11 +248,9 @@ export const resolvers = {
         unreadAlarm: await context.PowerEntity.getCompanyAlarmUnread(token),
         pie: await context.PowerEntity.getCompanyPie(token),
         children: await context.PowerEntity.getAllDistrictData(token),
+        token
       };
-      return {
-        powerEntity,
-        token,
-      };
+      return powerEntity;
     },
   },
   ConfigType: {
@@ -305,43 +303,47 @@ export const resolvers = {
     },
   },
   PowerEntityType: {
-    id({ token, powerEntity }, args, context) {
+    id(powerEntity, args, context) {
       return powerEntity.id;
     },
-    areaType({ token, powerEntity }, args, context) {
+    areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    pie({ token, powerEntity }, args, context) {
+    pie(powerEntity, args, context) {
       return powerEntity.pie;
     },
   },
   CompanyType: {
-    id({ token, powerEntity }, args, context) {
+    id(powerEntity, args, context) {
       return powerEntity.id;
     },
-    name({ token, powerEntity }, args, context) {
+    name(powerEntity, args, context) {
       return powerEntity.name;
     },
-    coordinate({ token, powerEntity }, args, context) {
+    coordinate(powerEntity, args, context) {
       return powerEntity.coordinate;
     },
-    companyId({ token, powerEntity }, args, context) {
+    companyId(powerEntity, args, context) {
       return powerEntity.companyId;
     },
-    areaType({ token, powerEntity }, args, context) {
+    areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    alarmInfos({ token, powerEntity }, args, context) {
-      return powerEntity.alarmInfos;
+    alarmInfos(powerEntity, args, context) {
+      if (isEmpty(args)) {
+        return powerEntity.alarmInfos;
+      }
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode } = args;
+      return context.PowerEntity.getCompanyAlarm(powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
     },
-    unreadAlarmAmount({ token, powerEntity }, args, context) {
+    unreadAlarmAmount(powerEntity, args, context) {
       return powerEntity.unreadAlarm;
     },
-    pie({ token, powerEntity }, args, context) {
+    pie(powerEntity, args, context) {
       return powerEntity.pie;
     },
-    children({ token, powerEntity }, args, context) {
-      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token }));
+    children(powerEntity, args, context) {
+      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
       return childrenWithToken;
     },
   },
@@ -349,13 +351,13 @@ export const resolvers = {
     id(powerEntity, args, context) {
       return powerEntity.id;
     },
-    name({ token, powerEntity }, args, context) {
+    name(powerEntity, args, context) {
       return powerEntity.name;
     },
-    coordinate({ token, powerEntity }, args, context) {
+    coordinate(powerEntity, args, context) {
       return powerEntity.coordinate;
     },
-    companyId({ token, powerEntity }, args, context) {
+    companyId(powerEntity, args, context) {
       return powerEntity.companyId;
     },
     address(powerEntity, args, context) {
@@ -457,16 +459,19 @@ export const resolvers = {
     realtimeData(device, args, context) {
       return context.PowerEntity.getRealtimeData(device.id, device.token);
     },
-    alarmInfos: property('alarmInfos'),
+    alarmInfos(aswitch, { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode }, context) {
+      return context.PowerEntity.getDeviceAlarm(aswitch.id, aswitch.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+    },
   },
   SwitchType: {
     id: property('id'),
     name: property('name'),
     realtimeData(aswitch, args, context) {
-      console.log(aswitch)
       return context.PowerEntity.getRealtimeData(aswitch.id, aswitch.token);
     },
-    alarmInfos: property('alarmInfos'),
+    alarmInfos(aswitch, { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode }, context) {
+      return context.PowerEntity.getDeviceAlarm(aswitch.id, aswitch.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+    },
     isOn: property('value'),
   }
 };

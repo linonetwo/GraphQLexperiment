@@ -62,5 +62,38 @@ query aaa {
 }
 
 
-
+query aaa {
+  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+    id
+    districts: children {
+      id
+      sites: children {
+        id
+        infos {
+          name
+          display
+          value
+        }
+        wires {
+          name
+          current
+          total
+          unit
+        }
+        cabinets {
+          id
+          switches {
+            id
+            name
+            isOn
+            alarmInfos(pagesize: 1) {
+              id
+              message
+            }
+          }
+        }
+      }
+    }
+  }
+}
 

@@ -107,8 +107,8 @@ export class PowerEntity {
     return this.connector.get('/api/data/index/pie', token);
   }
 
-  getCompanyAlarm(token, nextPage = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    return this.connector.get(`/api/alarm/company?pz=${pageSize}&pi=${nextPage}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  getCompanyAlarm(token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/company?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
   }
 
   getCompanyAlarmUnread(token): Promise<number> {
@@ -129,8 +129,8 @@ export class PowerEntity {
     return this.connector.get(`/api/data/site/${siteID}/pie`, token);
   }
 
-  getSiteAlarm(siteID, token, nextPage = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    return this.connector.get(`/api/alarm/site/${siteID}?pz=${pageSize}&pi=${nextPage}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  getSiteAlarm(siteID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/site/${siteID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
   }
 
   getSiteAlarmUnreadAmount(siteID, token): Promise<number> {
@@ -159,6 +159,10 @@ export class PowerEntity {
 
   getRealtimeData(deviceID, token) {
     return this.connector.get(`/api/data/device/${deviceID}/realtime`, token)
+  }
+
+  getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
   }
 
   getChildren(areaType, id, token) {
