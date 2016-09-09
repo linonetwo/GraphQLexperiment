@@ -9,5 +9,6 @@ export const TOKEN_USE_BEFORE_SET = `${UNDEFINED_DUT_TO_UNSET} user token hasn\'
 export const USERMETA_USE_BEFORE_SET = `${UNDEFINED_DUT_TO_UNSET} user metadata hasn\'t been set yet, should use login() before query any field of UserType`;
 
 export const API_FAILURE = `${NETWORK_UNEXPECTED} api endpoint returning unexpected response, should check whether api server was down or check the usage of api`;
+export const NO_TOKEN = `${NETWORK_UNEXPECTED} api endpoing need token, but you may supply with an empty string in connector`;
 
 export const MODEL_DONT_HAVE_THIS_FIELD = `${UNMEET_DATA_FIELD} probably you are query wrong data in resolver function, since model don\'t have this kind of data`;

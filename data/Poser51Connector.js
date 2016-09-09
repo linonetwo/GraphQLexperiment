@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 
 import {
   API_FAILURE,
+  NO_TOKEN,
 } from './errorTypes';
 
 

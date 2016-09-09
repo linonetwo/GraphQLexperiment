@@ -60,7 +60,6 @@ interface PowerEntityType {
   # ↓ 比较无关紧要的信息 
   address: String
   areaType: AreaType!
-  coordinate: String
 
   pie: PieGraphType
 }
@@ -104,7 +103,6 @@ type SiteType implements PowerEntityType {
   # ↓ 比较无关紧要的信息 
   address: String
   areaType: AreaType!
-  coordinate: String
   companyId: Int
   districtId: Int
   siteId: Int
@@ -310,6 +308,15 @@ export const resolvers = {
     id({ token, powerEntity }, args, context) {
       return powerEntity.id;
     },
+    name({ token, powerEntity }, args, context) {
+      return powerEntity.name;
+    },
+    coordinate({ token, powerEntity }, args, context) {
+      return powerEntity.coordinate;
+    },
+    companyId({ token, powerEntity }, args, context) {
+      return powerEntity.companyId;
+    },
     areaType({ token, powerEntity }, args, context) {
       return powerEntity.areaType;
     },
@@ -322,47 +329,62 @@ export const resolvers = {
     pie({ token, powerEntity }, args, context) {
       return powerEntity.pie;
     },
-    children({ token, powerEntity }, { areaType, id }, context) {
-      console.log(powerEntity.children);
-      return powerEntity.children;
+    children({ token, powerEntity }, args, context) {
+      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token }));
+      return childrenWithToken;
     },
   },
   DistrictType: {
     id(powerEntity, args, context) {
-      console.log('DistrictType id', powerEntity);
       return powerEntity.id;
     },
-    areaType({ token, powerEntity }, args, context) {
+    name({ token, powerEntity }, args, context) {
+      return powerEntity.name;
+    },
+    coordinate({ token, powerEntity }, args, context) {
+      return powerEntity.coordinate;
+    },
+    companyId({ token, powerEntity }, args, context) {
+      return powerEntity.companyId;
+    },
+    address(powerEntity, args, context) {
+      return powerEntity.address;
+    },
+    areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    pie({ token, powerEntity }, args, context) {
-      return powerEntity.pie;
+    pie(powerEntity, args, context) {
+      return context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
     },
-    children({ token, powerEntity }, { areaType, id }, context) {
-      console.log('DistrictType', powerEntity.children);
-      return powerEntity.children;
+    children(powerEntity, { areaType, id }, context) {
+      // console.log('DistrictType', powerEntity);
+      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+      return childrenWithToken;
     },
   },
   SiteType: {
-    id({ token, powerEntity }, args, context) {
+    id(powerEntity, args, context) {
       return powerEntity.id;
     },
-    areaType({ token, powerEntity }, args, context) {
+    areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    alarmInfos({ token, powerEntity }, args, context) {
-      return powerEntity.alarmInfos;
+    alarmInfos(powerEntity, args, context) {
+      return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token);
     },
-    pie({ token, powerEntity }, args, context) {
-      return powerEntity.pie;
+    unreadAlarm({ token, powerEntity }, args, context) {
+      return context.PowerEntity.getSiteAlarmUnread(powerEntity.id, powerEntity.token);
     },
-    infos({ token, powerEntity }, { siteID }, context) {
+    pie(powerEntity, args, context) {
+      return context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
+    },
+    infos(powerEntity, { siteID }, context) {
       return siteID ? context.PowerEntity.getSiteInfos(siteID, token) : powerEntity.infos;
     },
-    wires({ token, powerEntity }, { siteID }, context) {
+    wires(powerEntity, { siteID }, context) {
       return siteID ? context.PowerEntity.getWires(siteID, token) : powerEntity.wires;
     },
-    cabinets({ token, powerEntity }, { siteID }, context) {
+    cabinets(powerEntity, { siteID }, context) {
       return siteID ? context.PowerEntity.getCabinets(siteID, token) : powerEntity.cabinets;
     },
   },

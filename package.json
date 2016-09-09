@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A playground for trying experiment graphQL feature, preparing for production.",
   "scripts": {
-    "start": "nodemon ./server.js --exec babel-node --stack_size=100000 uglifyjs",
+    "start": "nodemon ./server.js --exec babel-node",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint ."
   },

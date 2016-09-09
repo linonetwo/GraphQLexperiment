@@ -53,11 +53,14 @@ query aaa {
       rate
       unit
     }
-    children {
-      id
+    districts: children {
+      sites: children {
+        id
+      }
     }
   }
 }
+
 
 
 

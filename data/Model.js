@@ -39,7 +39,7 @@ export class User {
 
   async getLoginStatus(token) {
     try {
-      const meta = await this.getLoginStatus();
+      const meta = await this.getAllMetaData();
       return true;
     } catch (error) {
       return false;
@@ -117,11 +117,28 @@ export class PowerEntity {
       .then(obj => obj.count);
   }
 
+  getDistrictPie(districtID, token) {
+    return this.connector.get(`/api/data/district/${districtID}/pie`, token);
+  }
+
   async getAllSiteOverview(siteID, token) {
     const { infos, wires } = this.connector.get(`/api/data/site/${siteID}/overview`, token);
     this.siteInfos[token][siteID] = { infos, wires };
 
     return this.siteInfos[token][siteID];
+  }
+
+  getSitePie(siteID, token) {
+    return this.connector.get(`/api/data/site/${siteID}/pie`, token);
+  }
+
+  getSiteAlarm(siteID, token, nextPage = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/site/${siteID}?pz=${pageSize}&pi=${nextPage}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  }
+
+  getSiteAlarmUnread(siteID, token): Promise<number> {
+    return this.connector.get('/api/alarm/unread_quantity/site/${siteID}', token)
+      .then(obj => obj.count);
   }
 
   getSiteInfos(siteID, token) {
