@@ -16,7 +16,7 @@ type RootQuery {
   FortuneCookie: String
   Config: ConfigType
   User(token: String!): UserType
-  Company(token: String!): PowerEntityType
+  Company(token: String!): CompanyType
 }
 
 # /api/admin/config
@@ -53,7 +53,51 @@ type UserType {
 # /api/info/entry  /api/data/site/{id}/overview
 # 厂区信息，说明还有它有哪些变电站或子厂区，厂区有自己的饼图数据
 # 同时也能表示变电站的数据，可以包括饼图和进线列表等数据
-type PowerEntityType {
+interface PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+  coordinate: String
+
+  pie: PieGraphType
+}
+
+type CompanyType implements PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+  coordinate: String
+  companyId: Int
+
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
+  unreadAlarm: Int
+  pie: PieGraphType
+  children: [DistrictType]
+}
+
+type DistrictType implements PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+  coordinate: String
+  companyId: Int
+  districtId: Int
+  gatewayID: Int
+
+  pie: PieGraphType
+  children(areaType: AreaType, id: Int): [SiteType]
+}
+
+type SiteType implements PowerEntityType {
   id: Int!
   name: String!
 
@@ -64,16 +108,15 @@ type PowerEntityType {
   companyId: Int
   districtId: Int
   siteId: Int
-  gatewayID: Int
 
+  pie: PieGraphType
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, filterAlarmCode: String): [AlarmInfoType]
   unreadAlarm: Int
-  pie: PieGraphType
   infos(siteID: Int!): [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires(siteID: Int!): [WireType]
   cabinets(siteID: Int!): [CabinetType]
-  children(areaType: AreaType, id: Int): [PowerEntityType]
 }
+
 
 enum AreaType {
   Company
@@ -210,7 +253,7 @@ export const resolvers = {
   },
   AlarmCodeType: {
     code({ code }, args, context) {
-      // RootQuery 中的 Config 返回的东西会被结构，得到一个符合 AlarmCodeType 的对象，传给这里的第一个参数
+      // RootQuery 中的 Config 返回的东西会被解构，得到一个符合 AlarmCodeType 的对象，传给这里的第一个参数
       return code;
     },
     label({ label }, args, context) {
@@ -259,6 +302,54 @@ export const resolvers = {
     areaType({ token, powerEntity }, args, context) {
       return powerEntity.areaType;
     },
+    pie({ token, powerEntity }, args, context) {
+      return powerEntity.pie;
+    },
+  },
+  CompanyType: {
+    id({ token, powerEntity }, args, context) {
+      return powerEntity.id;
+    },
+    areaType({ token, powerEntity }, args, context) {
+      return powerEntity.areaType;
+    },
+    alarmInfos({ token, powerEntity }, args, context) {
+      return powerEntity.alarmInfos;
+    },
+    unreadAlarm({ token, powerEntity }, args, context) {
+      return powerEntity.unreadAlarm;
+    },
+    pie({ token, powerEntity }, args, context) {
+      return powerEntity.pie;
+    },
+    children({ token, powerEntity }, { areaType, id }, context) {
+      console.log(powerEntity.children);
+      return powerEntity.children;
+    },
+  },
+  DistrictType: {
+    id(powerEntity, args, context) {
+      console.log('DistrictType id', powerEntity);
+      return powerEntity.id;
+    },
+    areaType({ token, powerEntity }, args, context) {
+      return powerEntity.areaType;
+    },
+    pie({ token, powerEntity }, args, context) {
+      return powerEntity.pie;
+    },
+    children({ token, powerEntity }, { areaType, id }, context) {
+      console.log('DistrictType', powerEntity.children);
+      return powerEntity.children;
+    },
+  },
+  SiteType: {
+    id({ token, powerEntity }, args, context) {
+      return powerEntity.id;
+    },
+    areaType({ token, powerEntity }, args, context) {
+      return powerEntity.areaType;
+    },
     alarmInfos({ token, powerEntity }, args, context) {
       return powerEntity.alarmInfos;
     },
@@ -273,10 +364,6 @@ export const resolvers = {
     },
     cabinets({ token, powerEntity }, { siteID }, context) {
       return siteID ? context.PowerEntity.getCabinets(siteID, token) : powerEntity.cabinets;
-    },
-    children({ token, powerEntity }, { areaType, id }, context) {
-      console.log(powerEntity.children[0].children);
-      return areaType && id ? context.PowerEntity.getChildren(areaType, id, token) : powerEntity.children;
     },
   },
   AlarmInfoType: {
