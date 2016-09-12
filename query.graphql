@@ -1,28 +1,3 @@
-query power51 {
-  user {
-    id
-    logined
-    username
-  }
-  config {
-    alarmtypes {
-      code
-      label
-    }
-  }
-  company {
-    id
-    pie {
-      total
-      current
-      rate
-      unit
-    }
-    children {
-      id
-    }
-  }
-}
 
 mutation getToken {
   getToken(username: "User123456", password: "123456") {

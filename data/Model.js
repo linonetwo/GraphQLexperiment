@@ -46,17 +46,6 @@ export class User {
     }
   }
 
-  getUserName(token) {
-    return !!this.userName[token]
-      ? Promise.resolve(this.userName[token])
-      : Promise.reject(new Error(USERNAME_USE_BEFORE_SET));
-  }
-
-  getPassWord(token) {
-    return !!this.password[token]
-      ? Promise.resolve(this.password[token])
-      : Promise.reject(new Error(PASSWORD_USE_BEFORE_SET));
-  }
 
   async getAllMetaData(token) {
 

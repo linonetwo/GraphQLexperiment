@@ -35,8 +35,6 @@ type AlarmCodeType {
 # /api/account/whoami
 type UserType {
   logined: Boolean
-  username: String
-  password: String
   token: String
 
   id: Int!
@@ -270,12 +268,6 @@ export const resolvers = {
   UserType: {
     logined({ token }, args, context) {
       return context.User.getLoginStatus(token);
-    },
-    username({ token }, args, context) {
-      return context.User.getUserName(token);
-    },
-    password({ token }, args, context) {
-      return context.User.getPassWord(token);
     },
     token({ token }, args, context) {
       return token;
