@@ -18,10 +18,10 @@ require('babel-register')(config);
 
 const serverConnector = new Power51Connector();
 
-const GRAPHQL_PORT = 8080;
+const GRAPHQL_PORT = 8964;
 
 const graphQLServer = express();
-graphQLServer.use('/graphql', apolloServer({
+graphQLServer.use('/graphiql', apolloServer({
   graphiql: true,
   pretty: true,
   schema: typeDefinitions,

@@ -1,4 +1,4 @@
-export const typeDefinitions = `schema {
+export const typeDefinitions = [`schema {
   query: RootQuery
   mutation: RootMutation
 }
@@ -35,8 +35,6 @@ type AlarmCodeType {
 # /api/account/whoami
 type UserType {
   logined: Boolean
-  username: String
-  password: String
   token: String
 
   id: Int!
@@ -77,7 +75,7 @@ type CompanyType implements PowerEntityType {
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   unreadAlarmAmount: Int
   pie: PieGraphType
-  children: [DistrictType]
+  children(id: Int): [DistrictType]
 }
 
 type DistrictType implements PowerEntityType {
@@ -93,7 +91,7 @@ type DistrictType implements PowerEntityType {
   gatewayID: Int
 
   pie: PieGraphType
-  children(areaType: AreaType, id: Int): [SiteType]
+  children(id: Int): [SiteType]
 }
 
 type SiteType implements PowerEntityType {
@@ -218,9 +216,9 @@ type SwitchType implements DeviceType {
   isOn: Boolean! # 开还是关，后端叫它 value
 }
 
-`;
+`];
 
-import { property, isEmpty } from 'lodash';
+import { property, isEmpty, find, matchesProperty } from 'lodash';
 
 export const resolvers = {
   RootMutation: {
@@ -270,12 +268,6 @@ export const resolvers = {
   UserType: {
     logined({ token }, args, context) {
       return context.User.getLoginStatus(token);
-    },
-    username({ token }, args, context) {
-      return context.User.getUserName(token);
-    },
-    password({ token }, args, context) {
-      return context.User.getPassWord(token);
     },
     token({ token }, args, context) {
       return token;
@@ -342,8 +334,11 @@ export const resolvers = {
     pie(powerEntity, args, context) {
       return powerEntity.pie;
     },
-    children(powerEntity, args, context) {
-      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+    children(powerEntity, { id }, context) {
+      let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+      if (id) {
+        childrenWithToken = [find(childrenWithToken, matchesProperty('id', id))];
+      }
       return childrenWithToken;
     },
   },
@@ -369,9 +364,11 @@ export const resolvers = {
     pie(powerEntity, args, context) {
       return context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
     },
-    children(powerEntity, { areaType, id }, context) {
-      // console.log('DistrictType', powerEntity);
-      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+    children(powerEntity, { id }, context) {
+      let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+      if (id) {
+        childrenWithToken = [find(childrenWithToken, matchesProperty('id', id))];
+      }
       return childrenWithToken;
     },
   },
@@ -389,6 +386,7 @@ export const resolvers = {
       return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
     },
     pie(powerEntity, args, context) {
+      console.log(powerEntity);
       return context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
     },
     infos(powerEntity, args, context) {
@@ -421,11 +419,11 @@ export const resolvers = {
     deviceId: property('deviceId'),
     deviceName: property('deviceName'),
   },
-  PieGraphType: {
-    total: property('total'),
-    current: property('current'),
-    rate: property('rate'),
-    unit: property('unit'),
+  PieGraphType: { // seems is of no use
+    total: pie => pie ? pie.total : 1,
+    current: pie => pie ? pie.current : 0,
+    rate: pie => pie ? pie.rate : '0%',
+    unit: pie => pie ? pie.unit : 'kw',
   },
   WireType: {
     name: property('name'),
