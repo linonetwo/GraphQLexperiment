@@ -1,4 +1,4 @@
-export const typeDefinitions = `schema {
+export const typeDefinitions = [`schema {
   query: RootQuery
   mutation: RootMutation
 }
@@ -75,7 +75,7 @@ type CompanyType implements PowerEntityType {
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   unreadAlarmAmount: Int
   pie: PieGraphType
-  children: [DistrictType]
+  children(id: Int): [DistrictType]
 }
 
 type DistrictType implements PowerEntityType {
@@ -91,7 +91,7 @@ type DistrictType implements PowerEntityType {
   gatewayID: Int
 
   pie: PieGraphType
-  children(areaType: AreaType, id: Int): [SiteType]
+  children(id: Int): [SiteType]
 }
 
 type SiteType implements PowerEntityType {
@@ -185,7 +185,7 @@ type CabinetType {
   address: String! # 「1-2-1-3」 这样的柜号
   children: [CabinetType]
   devices: [DeviceType]
-  switches: [[SwitchType]] # 似乎开关也是设备的一种，我得去问清楚
+  switches: [SwitchType] # 似乎开关也是设备的一种，我得去问清楚
   sortId: String # 有时间问问加这个是想干嘛
   wire: String # 意义不明
 
@@ -216,9 +216,9 @@ type SwitchType implements DeviceType {
   isOn: Boolean! # 开还是关，后端叫它 value
 }
 
-`;
+`];
 
-import { property, isEmpty } from 'lodash';
+import { property, isEmpty, find, matchesProperty } from 'lodash';
 
 export const resolvers = {
   RootMutation: {
@@ -334,8 +334,11 @@ export const resolvers = {
     pie(powerEntity, args, context) {
       return powerEntity.pie;
     },
-    children(powerEntity, args, context) {
-      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+    children(powerEntity, { id }, context) {
+      let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+      if (id) {
+        childrenWithToken = [find(childrenWithToken, matchesProperty('id', id))];
+      }
       return childrenWithToken;
     },
   },
@@ -361,9 +364,11 @@ export const resolvers = {
     pie(powerEntity, args, context) {
       return context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
     },
-    children(powerEntity, { areaType, id }, context) {
-      // console.log('DistrictType', powerEntity);
-      const childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+    children(powerEntity, { id }, context) {
+      let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+      if (id) {
+        childrenWithToken = [find(childrenWithToken, matchesProperty('id', id))];
+      }
       return childrenWithToken;
     },
   },
@@ -413,11 +418,11 @@ export const resolvers = {
     deviceId: property('deviceId'),
     deviceName: property('deviceName'),
   },
-  PieGraphType: {
-    total: property('total'),
-    current: property('current'),
-    rate: property('rate'),
-    unit: property('unit'),
+  PieGraphType: { // seems is of no use
+    total: pie => pie ? pie.total : 1,
+    current: pie => pie ? pie.current : 0,
+    rate: pie => pie ? pie.rate : '0%',
+    unit: pie => pie ? pie.unit : 'kw',
   },
   WireType: {
     name: property('name'),
@@ -434,8 +439,8 @@ export const resolvers = {
     devices: property('devices'),
     children: property('children'),
     async switches(cabinet, args, context) {
-      const switches = await context.PowerEntity.getSwitches(cabinet.siteId, cabinet.token);
-      const switchesWithToken = switches.map(switchGroup => switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token })));
+      const switchGroup = await context.PowerEntity.getCabinetSwitches(cabinet.siteId, cabinet.id, cabinet.token);
+      const switchesWithToken = switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token }));
       return switchesWithToken;
     },
     sortId: property('sortId'),

@@ -1,5 +1,5 @@
 import Promise from 'bluebird';
-import fetch from 'node-fetch';
+var fetch = require('node-fetch');
 
 import {
   API_FAILURE,

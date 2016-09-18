@@ -1,7 +1,6 @@
 import Promise from 'bluebird';
-import fetch from 'node-fetch';
-import _ from 'lodash';
 import moment from 'moment';
+import { has, findIndex, find, matchesProperty } from 'lodash';
 
 import {
   USERNAME_USE_BEFORE_SET,
@@ -57,7 +56,7 @@ export class User {
 
   getMetaData(field, token) {
     return this.getAllMetaData(token)
-      .then(meta => _.has(meta, field) ? meta[field] : Promise.reject(new Error(MODEL_DONT_HAVE_THIS_FIELD + ' : ' + field)));
+      .then(meta => has(meta, field) ? meta[field] : Promise.reject(new Error(MODEL_DONT_HAVE_THIS_FIELD + ' : ' + field)));
   }
 
   async login(username, password) {
@@ -141,9 +140,10 @@ export class PowerEntity {
     return this.connector.get(`/api/info/site/${siteID}/cabinets`, token);
   }
 
-  getSwitches(siteID, token) {
+  getCabinetSwitches(siteID, cabinetID, token) {
     return this.connector.get(`/api/data/site/${siteID}/cabinets/switches`, token)
-      .then(list => list.map(cabinet => cabinet.switches));
+      .then(list => find(list, obj => obj.cabinet.id === cabinetID))
+      .then(obj => obj.switches);
   }
 
   getRealtimeData(deviceID, token) {
@@ -160,7 +160,7 @@ export class PowerEntity {
         return this.getAllDistrictData(token);
       case 'District':
         return this.getAllDistrictData(token)
-          .then(districts => _.findIndex(districts, obj => obj.id === id));
+          .then(districts => findIndex(districts, obj => obj.id === id));
       case 'Site':
         return this.getCabinets(token);
       default:
