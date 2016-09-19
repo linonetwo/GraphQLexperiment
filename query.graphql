@@ -113,3 +113,4 @@ fragment switchInfo on SwitchType {
     message,
   }
 }
+>>>>>>> 0bfa2d29f1001a701be426c6bbedc4d7ebfa8643

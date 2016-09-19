@@ -185,7 +185,7 @@ type CabinetType {
   address: String! # 「1-2-1-3」 这样的柜号
   children: [CabinetType]
   devices: [DeviceType]
-  switches: [[SwitchType]] # 似乎开关也是设备的一种，我得去问清楚
+  switches: [SwitchType] # 似乎开关也是设备的一种，我得去问清楚
   sortId: String # 有时间问问加这个是想干嘛
   wire: String # 意义不明
 
@@ -386,7 +386,6 @@ export const resolvers = {
       return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
     },
     pie(powerEntity, args, context) {
-      console.log(powerEntity);
       return context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
     },
     infos(powerEntity, args, context) {
@@ -440,8 +439,8 @@ export const resolvers = {
     devices: property('devices'),
     children: property('children'),
     async switches(cabinet, args, context) {
-      const switches = await context.PowerEntity.getSwitches(cabinet.siteId, cabinet.token);
-      const switchesWithToken = switches.map(switchGroup => switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token })));
+      const switchGroup = await context.PowerEntity.getCabinetSwitches(cabinet.siteId, cabinet.id, cabinet.token);
+      const switchesWithToken = switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token }));
       return switchesWithToken;
     },
     sortId: property('sortId'),
