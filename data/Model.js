@@ -14,14 +14,21 @@ import {
 export class Config {
   constructor({ connector }) {
     this.connector = connector;
-    this.platformMetaData = {};
   }
 
   async getAlarmTypes() {
     try {
       const platformMetaData = await this.connector.get('api/admin/config');
-      this.platformMetaData = { ...this.platformMetaData, ...platformMetaData };
       return platformMetaData.alarmTypes;
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  async getIndicators() {
+    try {
+      const indicators = await this.connector.get('/api/admin/indicators');
+      return indicators;
     } catch (error) {
       throw new Error(error);
     }
@@ -150,8 +157,10 @@ export class PowerEntity {
     return this.connector.get(`/api/data/device/${deviceID}/realtime`, token)
   }
 
-  getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    return this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  async getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
+    const aaa = await this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+    console.log(aaa);
+    return aaa;
   }
 
   getChildren(areaType, id, token) {

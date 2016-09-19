@@ -17,12 +17,14 @@ type RootQuery {
   Config: ConfigType
   User(token: String!): UserType
   Company(token: String!): CompanyType
+  Alarm(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [AlarmInfoType]
 }
 
 # /api/admin/config
 # 供后台管理用的数据端点，此处只取 alarmtypes 用
 type ConfigType {
   alarmTypes: [AlarmCodeType!]
+  indicatorTypes: [IndicatorType!]
 }
 
 # /api/admin/config
@@ -110,7 +112,7 @@ type SiteType implements PowerEntityType {
   unreadAlarmAmount: Int
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
-  cabinets: [CabinetType]
+  cabinets(id: Int): [CabinetType]
 }
 
 
@@ -119,6 +121,7 @@ enum AreaType {
   District
   Site
   Cabinet
+  Device
 }
 
 enum OrderByType {
@@ -128,6 +131,12 @@ enum OrderByType {
   count
 }
 
+type IndicatorType {
+  id: Int!,
+  key: String!
+  name: String!
+  unit: String!
+}
 
 # /api/alarm/site/{id}?pz=20&pi=1&o=time /api/alarm/device/{id}?pagesize=20&pageindex=1
 # 一条告警信息
@@ -185,7 +194,7 @@ type CabinetType {
   address: String! # 「1-2-1-3」 这样的柜号
   children: [CabinetType]
   devices: [DeviceType]
-  switches: [SwitchType] # 似乎开关也是设备的一种，我得去问清楚
+  switches(id: Int): [SwitchType] # 似乎开关也是设备的一种，我得去问清楚
   sortId: String # 有时间问问加这个是想干嘛
   wire: String # 意义不明
 
@@ -250,11 +259,26 @@ export const resolvers = {
       };
       return powerEntity;
     },
+    Alarm(root, { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs }, context) {
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode } = alarmArgs;
+
+      switch (areaType) {
+        case 'Company':
+          return context.PowerEntity.getCompanyAlarm(token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+        case 'Site':
+          return context.PowerEntity.getSiteAlarm(siteID, token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+        case 'Device':
+          return context.PowerEntity.getDeviceAlarm(deviceID, token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+        default:
+          return [];
+      }
+    },
   },
   ConfigType: {
     alarmTypes(_, args, context) {
       return context.Config.getAlarmTypes();
     },
+    indicatorTypes(_, { token })
   },
   AlarmCodeType: {
     code({ code }, args, context) {
@@ -394,11 +418,20 @@ export const resolvers = {
     wires(powerEntity, args, context) {
       return context.PowerEntity.getWires(powerEntity.id, powerEntity.token);
     },
-    async cabinets(powerEntity, args, context) {
+    async cabinets(powerEntity, { id }, context) {
       const cabinets = await context.PowerEntity.getCabinets(powerEntity.id, powerEntity.token);
-      const cabinetsWithToken = cabinets.map(cabinet => Object.assign({}, cabinet, { token: powerEntity.token }));
+      let cabinetsWithToken = cabinets.map(cabinet => Object.assign({}, cabinet, { token: powerEntity.token }));
+      if (id) {
+        cabinetsWithToken = [find(cabinetsWithToken, matchesProperty('id', id))];
+      }
       return cabinetsWithToken;
     },
+  },
+  IndicatorType: {
+    id: property('id'),
+    key: property('key'),
+    name: property('name'),
+    unit: property('unit'),
   },
   AlarmInfoType: {
     id: property('alarmId'),
@@ -438,9 +471,12 @@ export const resolvers = {
     address: property('address'),
     devices: property('devices'),
     children: property('children'),
-    async switches(cabinet, args, context) {
+    async switches(cabinet, { id }, context) {
       const switchGroup = await context.PowerEntity.getCabinetSwitches(cabinet.siteId, cabinet.id, cabinet.token);
-      const switchesWithToken = switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token }));
+      let switchesWithToken = switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token }));
+      if (id) {
+        switchesWithToken = [find(switchesWithToken, matchesProperty('id', id))];
+      }
       return switchesWithToken;
     },
     sortId: property('sortId'),
