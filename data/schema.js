@@ -24,7 +24,7 @@ type RootQuery {
 # 供后台管理用的数据端点，此处只取 alarmtypes 用
 type ConfigType {
   alarmTypes: [AlarmCodeType!]
-  indicatorTypes: [IndicatorType!]
+  indicatorTypes(token: String!): [IndicatorType!]
 }
 
 # /api/admin/config
@@ -113,6 +113,7 @@ type SiteType implements PowerEntityType {
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
   cabinets(id: Int): [CabinetType]
+  lineChart: [LineChartType] 
 }
 
 
@@ -133,9 +134,14 @@ enum OrderByType {
 
 type IndicatorType {
   id: Int!,
-  key: String!
+  key: String
   name: String!
-  unit: String!
+  unit: String
+}
+
+type LineChartType {
+  time: String!
+  value: String
 }
 
 # /api/alarm/site/{id}?pz=20&pi=1&o=time /api/alarm/device/{id}?pagesize=20&pageindex=1
@@ -164,26 +170,27 @@ type AlarmInfoType {
 type PieGraphType {
   total: Int! # 当前负荷，受权限控制影响，此处可能是0
   current: Int! # 总额定负荷，受权限控制影响，此处可能是0
-  rate: String!
+  rate: String
   unit: String! # 客户想使用的单位
 }
 
 # /api/data/site/{id}/overview
 # 通用的显示格式，用于进线和变电站
 type InfoType {
-  name: String! # 用于显示这个数据是啥
-  display: String! # 用于显示这个值有多大
-  value: Float! # 一般用于计算
+  name: String
+  code: Int # 用于表示这个数据是啥
+  value: Float # 一般用于计算
 }
 
 # /api/data/site/{id}/overview
 # 每个变电站都会有进线，需要显示它们的负载
 type WireType {
   name: String! # 就是数据源中的 wire，显示「进线1」这样的线名
-  current: Int! # 当前负荷
+  current: Int # 当前负荷
   total: Int! # 能承载的总负荷
   unit: String!
-  indicators: InfoType! # 「有功电度」、「无功电度」什么的
+  deviceId: Int!
+  indicators: [InfoType]! # 「有功电度」、「无功电度」什么的
 }
 
 # /api/info/site/{id}/cabinets
@@ -278,7 +285,9 @@ export const resolvers = {
     alarmTypes(_, args, context) {
       return context.Config.getAlarmTypes();
     },
-    indicatorTypes(_, { token })
+    indicatorTypes(_, { token }, context) {
+      return context.Config.getIndicatorTypes(token);
+    }
   },
   AlarmCodeType: {
     code({ code }, args, context) {
@@ -426,6 +435,9 @@ export const resolvers = {
       }
       return cabinetsWithToken;
     },
+    lineChart(powerEntity, args, context) {
+      return context.PowerEntity.getSiteLineChart(powerEntity.id, powerEntity.token);
+    },
   },
   IndicatorType: {
     id: property('id'),
@@ -458,10 +470,11 @@ export const resolvers = {
     unit: pie => pie ? pie.unit : 'kw',
   },
   WireType: {
-    name: property('name'),
+    name: property('wire'),
     current: property('current'),
     total: property('total'),
     unit: property('unit'),
+    deviceId: property('deviceId'),
     indicators: property('indicators'),
   },
   CabinetType: {

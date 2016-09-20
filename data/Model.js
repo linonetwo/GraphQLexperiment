@@ -25,9 +25,10 @@ export class Config {
     }
   }
 
-  async getIndicators() {
+  async getIndicatorTypes(token) {
     try {
-      const indicators = await this.connector.get('/api/admin/indicators');
+      const indicators = await this.connector.get('/api/admin/indicators', token);
+      console.log(token)
       return indicators;
     } catch (error) {
       throw new Error(error);
@@ -159,7 +160,11 @@ export class PowerEntity {
 
   async getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
     const aaa = await this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
-    console.log(aaa);
+    return aaa;
+  }
+
+  async getSiteLineChart(siteID, token, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+    const aaa = await this.connector.get(`/api/load/site/${siteID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token);
     return aaa;
   }
 
