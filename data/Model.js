@@ -189,7 +189,7 @@ export class PowerEntity {
   }
 
   async getDistrictLineChart(districtID, token, sources, scale = '5m') {
-    if (!isFinite(Number(siteID))) {
+    if (!isFinite(Number(districtID))) {
       throw new Error(IMPORTANT_ID_NOT_PROVIDED);
     }
 

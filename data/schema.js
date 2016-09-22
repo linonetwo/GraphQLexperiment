@@ -63,7 +63,7 @@ interface PowerEntityType {
   address: String
   areaType: AreaType!
 
-  pie: PieGraphType
+  pie: PieGraphType!
 }
 
 type CompanyType implements PowerEntityType {
@@ -78,7 +78,7 @@ type CompanyType implements PowerEntityType {
 
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   unreadAlarmAmount: Int
-  pie: PieGraphType
+  pie: PieGraphType!
   children(id: Int): [DistrictType]
   lineChartSources(id: Int): [String]
   lineChart(sources: [String], scale: String): [LineChartListType]
@@ -96,7 +96,7 @@ type DistrictType implements PowerEntityType {
   districtId: Int
   gatewayID: Int
 
-  pie: PieGraphType
+  pie: PieGraphType!
   children(id: Int): [SiteType]
   lineChartSources(id: Int): [String]
   lineChart(sources: [String], scale: String): [LineChartListType]
@@ -113,7 +113,7 @@ type SiteType implements PowerEntityType {
   districtId: Int
   siteId: Int
 
-  pie: PieGraphType
+  pie: PieGraphType!
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   unreadAlarmAmount: Int
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
@@ -382,7 +382,12 @@ export const resolvers = {
       return powerEntity.areaType;
     },
     pie(powerEntity, args, context) {
-      return powerEntity.pie;
+      return powerEntity.pie ? powerEntity.pie : {
+        current: 0,
+        rate: '0%',
+        total: 1,
+        unit: 'kw',
+      };
     },
   },
   CompanyType: {
@@ -411,8 +416,14 @@ export const resolvers = {
     unreadAlarmAmount(powerEntity, args, context) {
       return powerEntity.unreadAlarm;
     },
-    pie(powerEntity, args, context) {
-      return powerEntity.pie;
+    async pie(powerEntity, args, context) {
+      const pie = await powerEntity.pie;
+      return pie ? pie : {
+        current: 0,
+        rate: '0%',
+        total: 1,
+        unit: 'kw',
+      };
     },
     lineChartSources(powerEntity, args, context) {
       return context.PowerEntity.getCompanyLineChartSources(powerEntity.token);
@@ -447,8 +458,14 @@ export const resolvers = {
     areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    pie(powerEntity, args, context) {
-      return context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
+    async pie(powerEntity, args, context) {
+      const pie = await context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
+      return pie ? pie : {
+        current: 0,
+        rate: '0%',
+        total: 1,
+        unit: 'kw',
+      };
     },
     lineChartSources(powerEntity, args, context) {
       return context.PowerEntity.getDistrictLineChartSources(powerEntity.id, powerEntity.token);
@@ -477,8 +494,14 @@ export const resolvers = {
     unreadAlarmAmount(powerEntity, args, context) {
       return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
     },
-    pie(powerEntity, args, context) {
-      return context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
+    async pie(powerEntity, args, context) {
+      const pie = await context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
+      return pie ? pie : {
+        current: 0,
+        rate: '0%',
+        total: 1,
+        unit: 'kw',
+      };
     },
     infos(powerEntity, args, context) {
       return context.PowerEntity.getSiteInfos(powerEntity.id, powerEntity.token);
@@ -532,12 +555,6 @@ export const resolvers = {
     cabinetName: property('cabinetName'),
     deviceId: property('deviceId'),
     deviceName: property('deviceName'),
-  },
-  PieGraphType: { // seems is of no use
-    total: pie => pie ? pie.total : 1,
-    current: pie => pie ? pie.current : 0,
-    rate: pie => pie ? pie.rate : '0%',
-    unit: pie => pie ? pie.unit : 'kw',
   },
   WireType: {
     name: property('wire'),
