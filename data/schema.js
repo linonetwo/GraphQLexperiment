@@ -18,6 +18,7 @@ type RootQuery {
   User(token: String!): UserType
   Company(token: String!): CompanyType
   Alarm(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [AlarmInfoType]
+  LineChart(token: String!, areaType: AreaType!, sources: [String], districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int, fromTime: String, toTime: String, scale: String): [LineChartListType]
 }
 
 # /api/admin/config
@@ -78,6 +79,8 @@ type CompanyType implements PowerEntityType {
   unreadAlarmAmount: Int
   pie: PieGraphType
   children(id: Int): [DistrictType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], scale: String): [LineChartListType]
 }
 
 type DistrictType implements PowerEntityType {
@@ -94,6 +97,8 @@ type DistrictType implements PowerEntityType {
 
   pie: PieGraphType
   children(id: Int): [SiteType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], scale: String): [LineChartListType]
 }
 
 type SiteType implements PowerEntityType {
@@ -113,7 +118,8 @@ type SiteType implements PowerEntityType {
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
   cabinets(id: Int): [CabinetType]
-  lineChart: [LineChartType] 
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType] 
 }
 
 
@@ -137,6 +143,11 @@ type IndicatorType {
   key: String
   name: String!
   unit: String
+}
+
+type LineChartListType {
+  source: String!
+  lineChart: [LineChartType]!
 }
 
 type LineChartType {
@@ -219,6 +230,8 @@ interface DeviceType {
   realtimeData: [InfoType!] # 设备的实时数据
   unreadAlarmAmount: Int
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType]
 }
 
 # /api/data/site/{id}/cabinets/switches
@@ -230,6 +243,8 @@ type SwitchType implements DeviceType {
   unreadAlarmAmount: Int
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
   isOn: Boolean! # 开还是关，后端叫它 value
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType]
 }
 
 `];
@@ -276,6 +291,22 @@ export const resolvers = {
           return context.PowerEntity.getSiteAlarm(siteID, token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
         case 'Device':
           return context.PowerEntity.getDeviceAlarm(deviceID, token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+        default:
+          return [];
+      }
+    },
+    LineChart(root, { token, areaType, sources, districtID, siteID, gatewayID, cabinetID, deviceID, ...lineChartArgs }, context) {
+      const { fromTime, toTime, scale } = lineChartArgs;
+
+      switch (areaType) {
+        case 'Company':
+          return context.PowerEntity.getCompanyLineChart(token, sources, scale);
+        case 'District':
+          return context.PowerEntity.getDistrictLineChart(districtID, token, sources, scale);
+        case 'Site':
+          return context.PowerEntity.getSiteLineChart(siteID, token, sources, fromTime, toTime, scale);
+        case 'Device':
+          return context.PowerEntity.getDeviceLineChart(deviceID, token, sources, fromTime, toTime, scale);
         default:
           return [];
       }
@@ -367,6 +398,12 @@ export const resolvers = {
     pie(powerEntity, args, context) {
       return powerEntity.pie;
     },
+    lineChartSources(powerEntity, args, context) {
+      return context.PowerEntity.getCompanyLineChartSources(powerEntity.token);
+    },
+    lineChart(powerEntity, { sources, scale }, context) {
+      return context.PowerEntity.getCompanyLineChart(powerEntity.token, sources, scale);
+    },
     children(powerEntity, { id }, context) {
       let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
       if (id) {
@@ -396,6 +433,12 @@ export const resolvers = {
     },
     pie(powerEntity, args, context) {
       return context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
+    },
+    lineChartSources(powerEntity, args, context) {
+      return context.PowerEntity.getDistrictLineChartSources(powerEntity.id, powerEntity.token);
+    },
+    lineChart(powerEntity, { sources, scale }, context) {
+      return context.PowerEntity.getDistrictLineChart(powerEntity.id, powerEntity.token, sources, scale);
     },
     children(powerEntity, { id }, context) {
       let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
@@ -435,8 +478,11 @@ export const resolvers = {
       }
       return cabinetsWithToken;
     },
-    lineChart(powerEntity, args, context) {
-      return context.PowerEntity.getSiteLineChart(powerEntity.id, powerEntity.token);
+    lineChartSources(powerEntity, args, context) {
+      return context.PowerEntity.getSiteLineChartSources(powerEntity.id, powerEntity.token);
+    },
+    lineChart(powerEntity, { sources, fromTime, toTime, scale }, context) {
+      return context.PowerEntity.getSiteLineChart(powerEntity.id, powerEntity.token, sources, fromTime, toTime, scale);
     },
   },
   IndicatorType: {
@@ -444,6 +490,10 @@ export const resolvers = {
     key: property('key'),
     name: property('name'),
     unit: property('unit'),
+  },
+  LineChartListType: {
+    source: property('source'),
+    lineChart: property('lineChart'),
   },
   AlarmInfoType: {
     id: property('alarmId'),
@@ -508,6 +558,12 @@ export const resolvers = {
     alarmInfos(aswitch, { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode }, context) {
       return context.PowerEntity.getDeviceAlarm(aswitch.id, aswitch.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
     },
+    lineChartSources(device, args, context) {
+      return context.PowerEntity.getDeviceLineChartSources(device.id, device.token);
+    },
+    lineChart(device, { sources, fromTime, toTime, scale }, context) {
+      return context.PowerEntity.getDeviceLineChart(device.id, device.token, sources, fromTime, toTime, scale);
+    },
   },
   SwitchType: {
     id: property('id'),
@@ -519,5 +575,11 @@ export const resolvers = {
       return context.PowerEntity.getDeviceAlarm(aswitch.id, aswitch.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
     },
     isOn: property('value'),
+    lineChartSources(device, args, context) {
+      return context.PowerEntity.getDeviceLineChartSources(device.id, device.token);
+    },
+    lineChart(device, { sources, fromTime, toTime, scale }, context) {
+      return context.PowerEntity.getDeviceLineChart(device.id, device.token, sources, fromTime, toTime, scale);
+    },
   }
 };

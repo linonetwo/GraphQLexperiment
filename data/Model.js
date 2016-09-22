@@ -1,6 +1,7 @@
+/* eslint no-param-reassign: 0 */
 import Promise from 'bluebird';
 import moment from 'moment';
-import { has, findIndex, find, matchesProperty } from 'lodash';
+import { has, findIndex, find, matchesProperty, isFinite } from 'lodash';
 
 import {
   USERNAME_USE_BEFORE_SET,
@@ -9,6 +10,7 @@ import {
   USERMETA_USE_BEFORE_SET,
   API_FAILURE,
   MODEL_DONT_HAVE_THIS_FIELD,
+  IMPORTANT_ID_NOT_PROVIDED,
 } from './errorTypes';
 
 export class Config {
@@ -28,7 +30,6 @@ export class Config {
   async getIndicatorTypes(token) {
     try {
       const indicators = await this.connector.get('/api/admin/indicators', token);
-      console.log(token)
       return indicators;
     } catch (error) {
       throw new Error(error);
@@ -159,14 +160,112 @@ export class PowerEntity {
   }
 
   async getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    const aaa = await this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
-    return aaa;
+    const alarms = await this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+    return alarms;
   }
 
-  async getSiteLineChart(siteID, token, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
-    const aaa = await this.connector.get(`/api/load/site/${siteID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token);
-    return aaa;
+  async getCompanyLineChartSources(token) {
+    // 目前还只显示厂区负荷一根线
+    return ['companyLoad'];
   }
+
+  async getCompanyLineChart(token, sources, scale = '5m') {
+    const companyChartList = [];
+
+    if (!sources) {
+      sources = await this.getCompanyLineChartSources(token);
+    }
+
+    if (sources.includes('companyLoad')) {
+      companyChartList.push({source: 'companyLoad', lineChart: await this.connector.get(`/api/load/company/today?sc=${scale}`, token)})
+    }
+
+    return companyChartList;
+  }
+
+  async getDistrictLineChartSources(districtID, token) {
+    // 目前还只显示厂区负荷一根线
+    return ['districtLoad'];
+  }
+
+  async getDistrictLineChart(districtID, token, sources, scale = '5m') {
+    if (!isFinite(Number(siteID))) {
+      throw new Error(IMPORTANT_ID_NOT_PROVIDED);
+    }
+
+    const districtChartList = [];
+
+    if (!sources) {
+      sources = await this.getDistrictLineChartSources(districtID, token);
+    }
+
+    if (sources.includes('districtLoad')) {
+      districtChartList.push({source: 'districtLoad', lineChart: await this.connector.get(`/api/load/ditrict/${districtID}/today?sc=${scale}`, token)})
+    }
+
+    return districtChartList;
+  }
+
+  async getSiteLineChartSources(siteID, token) {
+    if (!isFinite(Number(siteID))) {
+      throw new Error(IMPORTANT_ID_NOT_PROVIDED);
+    }
+
+    const wireIDList = await this.getWires(siteID, token).then(wireList => wireList.map(wireObj => String(wireObj.deviceId)));
+    return [...wireIDList, 'siteLoad'];
+  }
+
+  async getSiteLineChart(siteID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+    if (!isFinite(Number(siteID))) {
+      throw new Error(IMPORTANT_ID_NOT_PROVIDED);
+    }
+
+    const siteChartList = [];
+    
+    if (!sources) {
+      sources = await this.getSiteLineChartSources(siteID, token);
+    }
+
+    if (sources.includes('siteLoad')) {
+      siteChartList.push({source: 'siteLoad', lineChart: await this.connector.get(`/api/load/site/${siteID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+    }
+
+    for (const wire of sources) {
+      if (isFinite(Number(wire))) {
+        siteChartList.push({source: wire, lineChart: await this.connector.get(`/api/load/wire/${wire}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+      }
+    }
+    return siteChartList;
+  }
+
+  async getDeviceLineChartSources(deviceID, token) {
+    if (!isFinite(Number(deviceID))) {
+      throw new Error(IMPORTANT_ID_NOT_PROVIDED);
+    }
+
+    const deviceIndicatorList = await this.connector.get(`/api/load/device/${deviceID}/datasources`, token);
+    return deviceIndicatorList;
+  }
+
+  async getDeviceLineChart(deviceID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+    if (!isFinite(Number(deviceID))) {
+      throw new Error(IMPORTANT_ID_NOT_PROVIDED);
+    }
+    
+    const deviceChartList = [];
+
+    if (!sources) {
+      sources = await this.getDeviceLineChartSources(deviceID, token);
+    }
+
+    for (const indicator of sources) {
+      if (isFinite(Number(indicator))) {       
+        deviceChartList.push({source: indicator, lineChart: await this.connector.get(`/api/load/device/${deviceID}/datasource/${indicator}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+      }
+    }
+    return deviceChartList;
+  }
+
 
   getChildren(areaType, id, token) {
     switch (areaType) {

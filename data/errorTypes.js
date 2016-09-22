@@ -12,3 +12,5 @@ export const API_FAILURE = `${NETWORK_UNEXPECTED} api endpoint returning unexpec
 export const NO_TOKEN = `${NETWORK_UNEXPECTED} api endpoing need token, but you may supply with an empty string in connector`;
 
 export const MODEL_DONT_HAVE_THIS_FIELD = `${UNMEET_DATA_FIELD} probably you are query wrong data in resolver function, since model don\'t have this kind of data`;
+
+export const IMPORTANT_ID_NOT_PROVIDED = `${UNMEET_DATA_FIELD} you are not providing id we need, probably you typoly provide id for other field, for example providing siteID but typo for districtID`;

@@ -47,7 +47,6 @@ query aaa {
         id
         infos {
           name
-          display
           value
         }
         wires {
@@ -111,5 +110,40 @@ fragment switchInfo on SwitchType {
   alarmInfos(pagesize: $size) {
     id,
     message,
+  }
+}
+
+query aaa {
+  LineChart(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a", areaType: Site, siteID: 12) {
+    source
+    lineChart {
+      time
+      value
+    }
+  }
+}
+
+query aaa {
+  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+    id
+    districts: children {
+      id
+      sites: children {
+        id
+        cabinets {
+          id
+          switches {
+            id
+            lineChart {
+              source
+              lineChart {
+                time
+                value
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
