@@ -18,7 +18,8 @@ type RootQuery {
   User(token: String!): UserType
   Company(token: String!): CompanyType
   Alarm(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [AlarmInfoType]
-  LineChart(token: String!, areaType: AreaType!, sources: [String], districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int, fromTime: String, toTime: String, scale: String): [LineChartListType]
+  LineChart(token: String!, areaType: AreaType!, sources: [String], districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int, fromTime: String, toTime: String, scale: String): [LineChartListType]!
+  LineChartSources(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [String]!
 }
 
 # /api/admin/config
@@ -307,6 +308,21 @@ export const resolvers = {
           return context.PowerEntity.getSiteLineChart(siteID, token, sources, fromTime, toTime, scale);
         case 'Device':
           return context.PowerEntity.getDeviceLineChart(deviceID, token, sources, fromTime, toTime, scale);
+        default:
+          return [];
+      }
+    },
+    LineChartSources(root, { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID }, context) {
+
+      switch (areaType) {
+        case 'Company':
+          return context.PowerEntity.getCompanyLineChartSources(token);
+        case 'District':
+          return context.PowerEntity.getDistrictLineChartSources(districtID, token);
+        case 'Site':
+          return context.PowerEntity.getSiteLineChartSources(siteID, token);
+        case 'Device':
+          return context.PowerEntity.getDeviceLineChartSources(deviceID, token);
         default:
           return [];
       }

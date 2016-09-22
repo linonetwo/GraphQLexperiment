@@ -113,18 +113,28 @@ fragment switchInfo on SwitchType {
   }
 }
 
-query LineChartData($token: String!, $areaType: AreaType!, $siteID: Int) {
-  LineChart(token: $token, areaType: $areaType, siteID: $siteID) {
+query ModuleListData($token: String!, $areaType: AreaType!, $districtID: Int, $siteID: Int, $deviceID: Int) {
+  Config {
+    indicatorTypes(token: $token) {
+      id
+      key
+      name
+      unit
+    }
+  }
+  LineChart(token: $token, sources: ["52"], areaType: $areaType, districtID: $districtID, siteID: $siteID, deviceID: $deviceID) {
     source
     lineChart {
       time
       value
     }
   }
+  LineChartSources(token: $token, areaType: $areaType, districtID: $districtID, siteID: $siteID, deviceID: $deviceID)
 }
 {
   "token": "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a",
-  "areaType": "Site",
+  "areaType": "Device",
+  "deviceID": 37,
   "siteID": 12
 }
 
