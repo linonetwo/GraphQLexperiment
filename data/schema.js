@@ -493,7 +493,11 @@ export const resolvers = {
   },
   LineChartListType: {
     source: property('source'),
-    lineChart: property('lineChart'),
+    lineChart: lineChartList => lineChartList.lineChart.map(item => { item.source = lineChartList.source; return item; }),
+  },
+  LineChartType: {
+    time: property('time'),
+    value: lineChart => lineChart.source === '52' ? String(Number(lineChart.value) * 100) : lineChart.value,
   },
   AlarmInfoType: {
     id: property('alarmId'),

@@ -113,14 +113,19 @@ fragment switchInfo on SwitchType {
   }
 }
 
-query aaa {
-  LineChart(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a", areaType: Site, siteID: 12) {
+query LineChartData($token: String!, $areaType: AreaType!, $siteID: Int) {
+  LineChart(token: $token, areaType: $areaType, siteID: $siteID) {
     source
     lineChart {
       time
       value
     }
   }
+}
+{
+  "token": "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a",
+  "areaType": "Site",
+  "siteID": 12
 }
 
 query aaa {
