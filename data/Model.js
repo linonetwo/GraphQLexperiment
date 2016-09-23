@@ -169,7 +169,7 @@ export class PowerEntity {
     return ['companyLoad'];
   }
 
-  async getCompanyLineChart(token, sources, scale = '5m') {
+  async getCompanyLineChart(token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
     const companyChartList = [];
 
     if (!sources) {
@@ -177,7 +177,7 @@ export class PowerEntity {
     }
 
     if (sources.includes('companyLoad')) {
-      companyChartList.push({source: 'companyLoad', lineChart: await this.connector.get(`/api/load/company/today?sc=${scale}`, token)})
+      companyChartList.push({source: 'companyLoad', lineChart: await this.connector.get(`/api/load/company?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
     }
 
     return companyChartList;
@@ -188,7 +188,7 @@ export class PowerEntity {
     return ['districtLoad'];
   }
 
-  async getDistrictLineChart(districtID, token, sources, scale = '5m') {
+  async getDistrictLineChart(districtID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
     if (!isFinite(Number(districtID))) {
       throw new Error(IMPORTANT_ID_NOT_PROVIDED);
     }
@@ -200,7 +200,7 @@ export class PowerEntity {
     }
 
     if (sources.includes('districtLoad')) {
-      districtChartList.push({source: 'districtLoad', lineChart: await this.connector.get(`/api/load/ditrict/${districtID}/today?sc=${scale}`, token)})
+      districtChartList.push({source: 'districtLoad', lineChart: await this.connector.get(`/api/load/ditrict/${districtID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
     }
 
     return districtChartList;
