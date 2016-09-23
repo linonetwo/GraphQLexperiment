@@ -56,7 +56,6 @@ export class User {
 
 
   async getAllMetaData(token) {
-
     const metaData = await this.connector.get('/api/account/whoami', token);
     this.metaData[token] = metaData;
 
@@ -89,9 +88,6 @@ export class User {
 export class PowerEntity {
   constructor({ connector }) {
     this.connector = connector;
-    this.districts = {};
-    this.siteInfos = {};
-    this.modules = {};
   }
 
   async getAllDistrictData(token) {
@@ -156,7 +152,7 @@ export class PowerEntity {
   }
 
   getRealtimeData(deviceID, token) {
-    return this.connector.get(`/api/data/device/${deviceID}/realtime`, token)
+    return this.connector.get(`/api/data/device/${deviceID}/realtime`, token);
   }
 
   async getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
@@ -169,7 +165,7 @@ export class PowerEntity {
     return ['companyLoad'];
   }
 
-  async getCompanyLineChart(token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+  async getCompanyLineChart(token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '1h') {
     const companyChartList = [];
 
     if (!sources) {
@@ -177,7 +173,7 @@ export class PowerEntity {
     }
 
     if (sources.includes('companyLoad')) {
-      companyChartList.push({source: 'companyLoad', lineChart: await this.connector.get(`/api/load/company?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+      companyChartList.push({ source: 'companyLoad', lineChart: await this.connector.get(`/api/load/company?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token) });
     }
 
     return companyChartList;
@@ -188,7 +184,7 @@ export class PowerEntity {
     return ['districtLoad'];
   }
 
-  async getDistrictLineChart(districtID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+  async getDistrictLineChart(districtID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '1h') {
     if (!isFinite(Number(districtID))) {
       throw new Error(IMPORTANT_ID_NOT_PROVIDED);
     }
@@ -200,7 +196,7 @@ export class PowerEntity {
     }
 
     if (sources.includes('districtLoad')) {
-      districtChartList.push({source: 'districtLoad', lineChart: await this.connector.get(`/api/load/ditrict/${districtID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+      districtChartList.push({ source: 'districtLoad', lineChart: await this.connector.get(`/api/load/ditrict/${districtID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token) });
     }
 
     return districtChartList;
@@ -215,24 +211,24 @@ export class PowerEntity {
     return [...wireIDList, 'siteLoad'];
   }
 
-  async getSiteLineChart(siteID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+  async getSiteLineChart(siteID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '1h') {
     if (!isFinite(Number(siteID))) {
       throw new Error(IMPORTANT_ID_NOT_PROVIDED);
     }
 
     const siteChartList = [];
-    
+
     if (!sources) {
       sources = await this.getSiteLineChartSources(siteID, token);
     }
 
     if (sources.includes('siteLoad')) {
-      siteChartList.push({source: 'siteLoad', lineChart: await this.connector.get(`/api/load/site/${siteID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+      siteChartList.push({ source: 'siteLoad', lineChart: await this.connector.get(`/api/load/site/${siteID}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token) });
     }
 
     for (const wire of sources) {
       if (isFinite(Number(wire))) {
-        siteChartList.push({source: wire, lineChart: await this.connector.get(`/api/load/wire/${wire}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+        siteChartList.push({ source: wire, lineChart: await this.connector.get(`/api/load/wire/${wire}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token) });
       }
     }
     return siteChartList;
@@ -247,11 +243,11 @@ export class PowerEntity {
     return deviceIndicatorList;
   }
 
-  async getDeviceLineChart(deviceID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '5m') {
+  async getDeviceLineChart(deviceID, token, sources, fromTime = moment().subtract(1, 'days').format('YYYY-MM-DD'), toTime = moment().format('YYYY-MM-DD'), scale = '1h') {
     if (!isFinite(Number(deviceID))) {
       throw new Error(IMPORTANT_ID_NOT_PROVIDED);
     }
-    
+
     const deviceChartList = [];
 
     if (!sources) {
@@ -259,8 +255,12 @@ export class PowerEntity {
     }
 
     for (const indicator of sources) {
-      if (isFinite(Number(indicator))) {       
-        deviceChartList.push({source: indicator, lineChart: await this.connector.get(`/api/load/device/${deviceID}/datasource/${indicator}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token)})
+      if (isFinite(Number(indicator))) {
+        let lineChart = await this.connector.get(`/api/load/device/${deviceID}/datasource/${indicator}?ft=${fromTime}&tt=${toTime}&sc=${scale}`, token); // eslint-disable-line babel/no-await-in-loop
+        if (Number(indicator) === 52) {
+          lineChart = lineChart.map(({ time, value }) => ({ time, value: String(Number(value) * 100) }));
+        }
+        deviceChartList.push({ source: indicator, lineChart });
       }
     }
     return deviceChartList;

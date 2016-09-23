@@ -301,9 +301,9 @@ export const resolvers = {
 
       switch (areaType) {
         case 'Company':
-          return context.PowerEntity.getCompanyLineChart(token, sources, scale);
+          return context.PowerEntity.getCompanyLineChart(token, sources, fromTime, toTime, scale);
         case 'District':
-          return context.PowerEntity.getDistrictLineChart(districtID, token, sources, scale);
+          return context.PowerEntity.getDistrictLineChart(districtID, token, sources, fromTime, toTime, scale);
         case 'Site':
           return context.PowerEntity.getSiteLineChart(siteID, token, sources, fromTime, toTime, scale);
         case 'Device':
@@ -532,11 +532,11 @@ export const resolvers = {
   },
   LineChartListType: {
     source: property('source'),
-    lineChart: lineChartList => lineChartList.lineChart.map(item => { item.source = lineChartList.source; return item; }),
+    lineChart: property('lineChart'),
   },
   LineChartType: {
     time: property('time'),
-    value: lineChart => lineChart.source === '52' ? String(Number(lineChart.value) * 100) : lineChart.value,
+    value: property('value'),
   },
   AlarmInfoType: {
     id: property('alarmId'),
