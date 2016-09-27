@@ -5,6 +5,7 @@ export const typeDefinitions = [`schema {
 
 type RootMutation {
   getToken(username: String!, password: String!): TokenType
+  confirmAlarm(companyID: Int!, alarmID: Int!, token: String!): String! # return confirmed time
 }
 
 type TokenType {
@@ -17,7 +18,22 @@ type RootQuery {
   Config: ConfigType
   User(token: String!): UserType
   Company(token: String!): CompanyType
-  Alarm(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [AlarmInfoType]
+  Alarm(
+    token: String!,
+    areaType: AreaType!,
+    districtID: Int,
+    siteID: Int,
+    gatewayID: Int,
+    cabinetID: Int,
+    deviceID: Int,
+    pagesize: Int,
+    pageIndex: Int,
+    orderBy: OrderByType,
+    fromTime: String,
+    toTime: String,
+    alarmCodes: [String],
+    confirmed: String,
+  ): [AlarmInfoType]
   LineChart(token: String!, areaType: AreaType!, sources: [String], districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int, fromTime: String, toTime: String, scale: String): [LineChartListType]!
   LineChartSources(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [String]!
 }
@@ -76,8 +92,24 @@ type CompanyType implements PowerEntityType {
   coordinate: String
   companyId: Int
 
-  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
+  alarmInfos(
+    token: String!,
+    areaType: AreaType!,
+    districtID: Int,
+    siteID: Int,
+    gatewayID: Int,
+    cabinetID: Int,
+    deviceID: Int,
+    pagesize: Int,
+    pageIndex: Int,
+    orderBy: OrderByType,
+    fromTime: String,
+    toTime: String,
+    alarmCodes: [String],
+    confirmed: String,
+  ): [AlarmInfoType],
   unreadAlarmAmount: Int
+  unConfirmedAlarmAmount: Int
   pie: PieGraphType!
   children(id: Int): [DistrictType]
   lineChartSources(id: Int): [String]
@@ -114,7 +146,22 @@ type SiteType implements PowerEntityType {
   siteId: Int
 
   pie: PieGraphType!
-  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
+  alarmInfos(
+    token: String!,
+    areaType: AreaType!,
+    districtID: Int,
+    siteID: Int,
+    gatewayID: Int,
+    cabinetID: Int,
+    deviceID: Int,
+    pagesize: Int,
+    pageIndex: Int,
+    orderBy: OrderByType,
+    fromTime: String,
+    toTime: String,
+    alarmCodes: [String],
+    confirmed: String,
+  ): [AlarmInfoType],
   unreadAlarmAmount: Int
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
@@ -163,18 +210,19 @@ type AlarmInfoType {
   code: String! # 警告编号 实际上是一个数字
   timestamp: String! # 警告时间，类似「2016-07-01 00:00:00」
   readed: Boolean! # 已读
+  confirmed: String! # 已确认
   message: String
 
-  userId: Int
-  districtId: Int # 厂区ID
+  userID: Int
+  districtID: Int # 厂区ID
   districtName: String # 厂区名称
-  siteId: Int # 变电站ID
+  siteID: Int # 变电站ID
   siteName: String # 变电站名称
-  gatewayId: Int # 网关ID
+  gatewayID: Int # 网关ID
   gatewayName: String # 网关名称
-  cabinetId: Int # 设备所处机柜的全局唯一ID
+  cabinetID: Int # 设备所处机柜的全局唯一ID
   cabinetName: String # 设备所处机柜的名称
-  deviceId: Int # 设备的全局唯一ID
+  deviceID: Int # 设备的全局唯一ID
   deviceName: String # 设备的名称
 }
 
@@ -250,12 +298,16 @@ type SwitchType implements DeviceType {
 
 `];
 
-import { property, isEmpty, find, matchesProperty } from 'lodash';
+import { property, isEmpty, find, matchesProperty, flatten } from 'lodash';
+import moment from 'moment';
 
 export const resolvers = {
   RootMutation: {
     getToken(root, { username, password }, context) {
       return context.User.login(username, password);
+    },
+    confirmAlarm(root, { companyID, alarmID, token }, context) {
+      return context.PowerEntity.confirmAlarm(companyID, alarmID, token);
     },
   },
   RootQuery: {
@@ -283,15 +335,15 @@ export const resolvers = {
       return powerEntity;
     },
     Alarm(root, { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs }, context) {
-      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode } = alarmArgs;
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
 
       switch (areaType) {
         case 'Company':
-          return context.PowerEntity.getCompanyAlarm(token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+          return context.PowerEntity.getCompanyAlarm(token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
         case 'Site':
-          return context.PowerEntity.getSiteAlarm(siteID, token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+          return context.PowerEntity.getSiteAlarm(siteID, token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
         case 'Device':
-          return context.PowerEntity.getDeviceAlarm(deviceID, token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+          return context.PowerEntity.getDeviceAlarm(deviceID, token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
         default:
           return [];
       }
@@ -313,7 +365,6 @@ export const resolvers = {
       }
     },
     LineChartSources(root, { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID }, context) {
-
       switch (areaType) {
         case 'Company':
           return context.PowerEntity.getCompanyLineChartSources(token);
@@ -410,15 +461,18 @@ export const resolvers = {
       if (isEmpty(args)) {
         return powerEntity.alarmInfos;
       }
-      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode } = args;
-      return context.PowerEntity.getCompanyAlarm(powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
+      return context.PowerEntity.getCompanyAlarm(powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
     },
     unreadAlarmAmount(powerEntity, args, context) {
       return powerEntity.unreadAlarm;
     },
+    unConfirmedAlarmAmount(powerEntity, args, context) {
+      return context.PowerEntity.getCompanyAlarmUnconfirmed(powerEntity.id, powerEntity.token);
+    },
     async pie(powerEntity, args, context) {
       const pie = await powerEntity.pie;
-      return pie ? pie : {
+      return pie || {
         current: 0,
         rate: '0%',
         total: 1,
@@ -489,7 +543,8 @@ export const resolvers = {
       return powerEntity.areaType;
     },
     alarmInfos(powerEntity, args, context) {
-      return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token);
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
+      return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
     },
     unreadAlarmAmount(powerEntity, args, context) {
       return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
@@ -532,7 +587,10 @@ export const resolvers = {
   },
   LineChartListType: {
     source: property('source'),
-    lineChart: property('lineChart'),
+    lineChart(LineChartList, args, context) {
+
+      return LineChartList.lineChart;
+    },
   },
   LineChartType: {
     time: property('time'),
@@ -543,17 +601,18 @@ export const resolvers = {
     code: property('code'),
     timestamp: property('time'),
     readed: property('readed'),
+    confirmed: property('confirmed'),
     message: property('message'),
-    userId: property('userId'),
-    districtId: property('districtId'),
+    userID: property('userId'),
+    districtID: property('districtId'),
     districtName: property('districtName'),
-    siteId: property('siteId'),
+    siteID: property('siteId'),
     siteName: property('siteName'),
-    gatewayId: property('gatewayId'),
+    gatewayID: property('gatewayId'),
     gatewayName: property('gatewayName'),
-    cabinetId: property('cabinetId'),
+    cabinetID: property('cabinetId'),
     cabinetName: property('cabinetName'),
-    deviceId: property('deviceId'),
+    deviceID: property('deviceId'),
     deviceName: property('deviceName'),
   },
   WireType: {
@@ -592,8 +651,9 @@ export const resolvers = {
     realtimeData(device, args, context) {
       return context.PowerEntity.getRealtimeData(device.id, device.token);
     },
-    alarmInfos(aswitch, { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode }, context) {
-      return context.PowerEntity.getDeviceAlarm(aswitch.id, aswitch.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+    alarmInfos(powerEntity, args, context) {
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
+      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
     },
     lineChartSources(device, args, context) {
       return context.PowerEntity.getDeviceLineChartSources(device.id, device.token);
@@ -608,8 +668,9 @@ export const resolvers = {
     realtimeData(aswitch, args, context) {
       return context.PowerEntity.getRealtimeData(aswitch.id, aswitch.token);
     },
-    alarmInfos(aswitch, { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCode }, context) {
-      return context.PowerEntity.getDeviceAlarm(aswitch.id, aswitch.token, pageIndex, orderBy, fromTime, toTime, alarmCode, pagesize);
+    alarmInfos(powerEntity, args, context) {
+      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
+      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
     },
     isOn: property('value'),
     lineChartSources(device, args, context) {

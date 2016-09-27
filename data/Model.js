@@ -100,13 +100,23 @@ export class PowerEntity {
     return this.connector.get('/api/data/index/pie', token);
   }
 
-  getCompanyAlarm(token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    return this.connector.get(`/api/alarm/company?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  getCompanyAlarm(token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCodes = [''], confirmed = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/company?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCodes.join(',')}&ct=${confirmed}`, token);
+  }
+
+  getCompanyAlarmUnconfirmed(companyID, token) {
+    return this.connector.get(`/api/company/${companyID}/alarm/overview`, token)
+      .then(obj => obj.unConfirmedCount);;
   }
 
   getCompanyAlarmUnread(token): Promise<number> {
     return this.connector.get('/api/alarm/unread_quantity', token)
       .then(obj => obj.count);
+  }
+
+  confirmAlarm(companyID, alarmID, token) {
+    return this.connector.get(`/api/company/${companyID}/alarm/${alarmID}/confirm`, token)
+      .then(obj => obj.confirmedTime);
   }
 
   getDistrictPie(districtID, token) {
@@ -122,8 +132,8 @@ export class PowerEntity {
     return this.connector.get(`/api/data/site/${siteID}/pie`, token);
   }
 
-  getSiteAlarm(siteID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    return this.connector.get(`/api/alarm/site/${siteID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  getSiteAlarm(siteID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCodes = [''], confirmed = '', pageSize = 20) {
+    return this.connector.get(`/api/alarm/site/${siteID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCodes.join(',')}&ct=${confirmed}`, token);
   }
 
   getSiteAlarmUnreadAmount(siteID, token): Promise<number> {
@@ -155,8 +165,8 @@ export class PowerEntity {
     return this.connector.get(`/api/data/device/${deviceID}/realtime`, token);
   }
 
-  async getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCode = '', pageSize = 20) {
-    const alarms = await this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCode}`, token);
+  async getDeviceAlarm(deviceID, token, pageIndex = 1, orderBy = 'time', fromTime = '', toTime = '', alarmCodes = [''], confirmed = '', pageSize = 20) {
+    const alarms = await this.connector.get(`/api/alarm/device/${deviceID}?pz=${pageSize}&pi=${pageIndex}&ob=${orderBy}&ft=${fromTime}&tt=${toTime}&ac=${alarmCodes.join(',')}&ct=${confirmed}`, token);
     return alarms;
   }
 

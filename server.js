@@ -1,6 +1,8 @@
 import express from 'express';
-import { apolloServer } from 'graphql-tools';
-import { typeDefinitions, resolvers } from './data/schema';
+import bodyParser from 'body-parser';
+import { apolloExpress, graphiqlExpress } from 'apollo-server';
+import { makeExecutableSchema } from 'graphql-tools';
+import { typeDefinitions as typeDefs, resolvers } from './data/schema';
 import Power51Connector from './data/Poser51Connector';
 import { User, Config, PowerEntity, FortuneCookie } from './data/Model';
 
@@ -20,19 +22,24 @@ const serverConnector = new Power51Connector();
 
 const GRAPHQL_PORT = 8964;
 
+const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
 const graphQLServer = express();
-graphQLServer.use('/graphiql', apolloServer({
+graphQLServer.use(bodyParser.json())
+graphQLServer.use('/graphql', apolloExpress(() => ({
   graphiql: true,
   pretty: true,
-  schema: typeDefinitions,
-  resolvers,
+  schema: executableSchema,
   context: {
     Config: new Config({ connector: serverConnector }),
     User: new User({ connector: serverConnector }),
     PowerEntity: new PowerEntity({ connector: serverConnector }),
     FortuneCookie: new FortuneCookie(),
   },
-}));
+}))
+);
+
+graphQLServer.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }))
+
 graphQLServer.listen(GRAPHQL_PORT, () => console.log(
-  `GraphQL Server is now running on http://localhost:${GRAPHQL_PORT}/graphql`
+  `GraphQL Server is now running on http://localhost:${GRAPHQL_PORT}/graphiql`
 ));

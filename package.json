@@ -21,10 +21,13 @@
   "license": "MIT",
   "homepage": "https://github.com/linonetwo/GraphQLexperiment",
   "dependencies": {
+    "apollo-server": "^0.3.2",
     "bluebird": "^3.4.6",
+    "body-parser": "^1.15.2",
     "chinese-random-name": "^0.1.2",
     "express": "4.13.4",
-    "graphql-tools": "^0.4.2",
+    "graphql": "^0.7.0",
+    "graphql-tools": "^0.7.2",
     "lodash": "^4.15.0",
     "moment": "^2.14.1",
     "node-fetch": "^1.6.0",
@@ -51,7 +54,6 @@
     "eslint-plugin-import": "^1.1.0",
     "eslint-plugin-jsx-a11y": "^2.0.1",
     "eslint-plugin-react": "^6.0.0",
-    "graphql": "^0.5.0",
     "nodemon": "^1.9.1"
   }
 }
