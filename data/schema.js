@@ -5,7 +5,7 @@ export const typeDefinitions = [`schema {
 
 type RootMutation {
   getToken(username: String!, password: String!): TokenType
-  confirmAlarm(companyID: Int!, alarmID: Int!, token: String!): String! # return confirmed time
+  confirmAlarm(companyID: Int!, alarmID: Int!, token: String!): ConfirmedAlarmType! # return confirmed userName
 }
 
 type TokenType {
@@ -52,8 +52,20 @@ type AlarmCodeType {
   label: String! # 给人看的告警信息
 }
 
+interface NameType {
+  id: Int!
+  name: String
+}
+
+type ConfirmedAlarmType implements NameType {
+  id: Int!
+  name: String!
+  time: String
+  succeed: Boolean
+}
+
 # /api/account/whoami
-type UserType {
+type UserType implements NameType {
   logined: Boolean
   token: String
 
@@ -250,6 +262,7 @@ type WireType {
   total: Int! # 能承载的总负荷
   unit: String!
   deviceId: Int!
+  cabinetID: Int!
   indicators: [InfoType]! # 「有功电度」、「无功电度」什么的
 }
 
@@ -379,6 +392,12 @@ export const resolvers = {
       }
     },
   },
+  ConfirmedAlarmType: {
+    id: property('confirmedUserId'),
+    name: property('confirmedUserName'),
+    time: property('confirmedTime'),
+    succeed: property('confirmedSuccess'),
+  },
   ConfigType: {
     alarmTypes(_, args, context) {
       return context.Config.getAlarmTypes();
@@ -461,8 +480,9 @@ export const resolvers = {
       if (isEmpty(args)) {
         return powerEntity.alarmInfos;
       }
+      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
       const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getCompanyAlarm(powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
+      return context.PowerEntity.getCompanyAlarm(powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
     },
     unreadAlarmAmount(powerEntity, args, context) {
       return powerEntity.unreadAlarm;
@@ -514,7 +534,7 @@ export const resolvers = {
     },
     async pie(powerEntity, args, context) {
       const pie = await context.PowerEntity.getDistrictPie(powerEntity.id, powerEntity.token);
-      return pie ? pie : {
+      return pie || {
         current: 0,
         rate: '0%',
         total: 1,
@@ -543,15 +563,16 @@ export const resolvers = {
       return powerEntity.areaType;
     },
     alarmInfos(powerEntity, args, context) {
+      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
       const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
+      return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
     },
     unreadAlarmAmount(powerEntity, args, context) {
       return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
     },
     async pie(powerEntity, args, context) {
       const pie = await context.PowerEntity.getSitePie(powerEntity.id, powerEntity.token);
-      return pie ? pie : {
+      return pie || {
         current: 0,
         rate: '0%',
         total: 1,
@@ -561,8 +582,24 @@ export const resolvers = {
     infos(powerEntity, args, context) {
       return context.PowerEntity.getSiteInfos(powerEntity.id, powerEntity.token);
     },
-    wires(powerEntity, args, context) {
-      return context.PowerEntity.getWires(powerEntity.id, powerEntity.token);
+    async wires(site, args, context) {
+      const wires = await context.PowerEntity.getWires(site.id, site.token);
+
+      // inject cabinetId to wires
+      const cabinetIdList = await context.PowerEntity.getCabinets(site.id, site.token).map(cabinet => cabinet.id);
+
+      for (const wire of wires) {
+        for (const cabinetId of cabinetIdList) {
+          const switches = await context.PowerEntity.getCabinetSwitches(site.id, cabinetId, site.token);
+          for (const aSwitch of switches) {
+            if (aSwitch.id === wire.deviceId) {
+              wire.cabinetID = cabinetId;
+            }
+          }
+        }
+      }
+
+      return wires;
     },
     async cabinets(powerEntity, { id }, context) {
       const cabinets = await context.PowerEntity.getCabinets(powerEntity.id, powerEntity.token);
@@ -588,7 +625,6 @@ export const resolvers = {
   LineChartListType: {
     source: property('source'),
     lineChart(LineChartList, args, context) {
-
       return LineChartList.lineChart;
     },
   },
@@ -620,6 +656,7 @@ export const resolvers = {
     current: property('current'),
     total: property('total'),
     unit: property('unit'),
+    cabinetID: property('cabinetID'),
     deviceId: property('deviceId'),
     indicators: property('indicators'),
   },
@@ -652,8 +689,9 @@ export const resolvers = {
       return context.PowerEntity.getRealtimeData(device.id, device.token);
     },
     alarmInfos(powerEntity, args, context) {
+      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
       const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
+      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
     },
     lineChartSources(device, args, context) {
       return context.PowerEntity.getDeviceLineChartSources(device.id, device.token);
@@ -669,8 +707,9 @@ export const resolvers = {
       return context.PowerEntity.getRealtimeData(aswitch.id, aswitch.token);
     },
     alarmInfos(powerEntity, args, context) {
+      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
       const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmType, pagesize);
+      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
     },
     isOn: property('value'),
     lineChartSources(device, args, context) {

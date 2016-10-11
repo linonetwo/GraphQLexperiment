@@ -116,7 +116,6 @@ export class PowerEntity {
 
   confirmAlarm(companyID, alarmID, token) {
     return this.connector.get(`/api/company/${companyID}/alarm/${alarmID}/confirm`, token)
-      .then(obj => obj.confirmedTime);
   }
 
   getDistrictPie(districtID, token) {
