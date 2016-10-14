@@ -222,10 +222,11 @@ type AlarmInfoType {
   code: String! # 警告编号 实际上是一个数字
   timestamp: String! # 警告时间，类似「2016-07-01 00:00:00」
   readed: Boolean! # 已读
-  confirmed: String! # 已确认
+  confirmed: Boolean! # 已确认
   message: String
 
-  userID: Int
+  confirmedUserID: Int
+  confirmedUserName: String
   districtID: Int # 厂区ID
   districtName: String # 厂区名称
   siteID: Int # 变电站ID
@@ -639,7 +640,9 @@ export const resolvers = {
     readed: property('readed'),
     confirmed: property('confirmed'),
     message: property('message'),
-    userID: property('userId'),
+
+    confirmedUserID: property('confirmedUserId'),
+    confirmedUserName: property('confirmedUserName'),
     districtID: property('districtId'),
     districtName: property('districtName'),
     siteID: property('siteId'),
