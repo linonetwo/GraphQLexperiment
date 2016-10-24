@@ -1,50 +1,56 @@
-
-
-mutation getToken {
-  getToken(username: "User123456", password: "123456") {
-    token
-    error
-  }
+{
+  "token": "fbe3ec12-6436-4504-a61f-ea26176b9580",
+  "districtID": 8, "siteID": 12, "cabinetID": 50, "deviceID": 37,
+	"areaType": "Company", "fromTime": "2016-10-20", "toTime": "2016-10-23"
 }
-
-
-query aaa {
-  FortuneCookie
-  Config {
-    alarmTypes {
-      code
-      label
-    }
-  }
-  User(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+query MainPageData($token: String!) {
+  User(token: $token) {
+    id
     logined
     name
+    companyName
+    departmentName
+    role
   }
-  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+  Company(token: $token) {
     id
-    areaType
+    name
     pie {
       total
       current
       rate
       unit
     }
-    districts: children {
-      sites: children {
-        id
-      }
-    }
+    unreadAlarmAmount
+    unConfirmedAlarmAmount
   }
 }
 
-
-query aaa {
-  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
-    id
-    districts: children {
+query SiteDetailData($token: String!, $districtID: Int!, $siteID: Int!) {
+  Config {
+    indicatorTypes(token: $token) {
       id
-      sites: children {
+      key
+      name
+      unit
+    }
+  }
+  Company(token: $token) {
+    id
+    district: children(id: $districtID) {
+      id
+      name
+      areaType
+      site: children(id: $siteID) {
         id
+        name
+        unreadAlarmAmount
+        pie {
+          total
+          current
+          rate
+          unit
+        }
         infos {
           name
           value
@@ -54,66 +60,20 @@ query aaa {
           current
           total
           unit
-        }
-        cabinets {
-          id
-          switches {
-            id
-            name
-            isOn
-            alarmInfos(pagesize: 1) {
-              id
-              message
-            }
+          deviceId
+          cabinetID
+          indicators {
+            code
+            value
           }
         }
+        areaType
       }
     }
   }
 }
 
-
-query aaa($size: Int) {
-  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
-    id,
-    id,
-    districts: children {
-      id,
-      sites: children {
-        id,
-        infos {
-          name,
-          display,
-          value,
-        }
-        wires {
-          name,
-          current,
-          total,
-          unit,
-        }
-        cabinets {
-          id,
-          switches {
-            ...switchInfo
-          }
-        }
-      }
-    }
-  }
-}
-
-fragment switchInfo on SwitchType {
-  id,
-  name,
-  isOn,
-  alarmInfos(pagesize: $size) {
-    id,
-    message,
-  }
-}
-
-query ModuleListData($token: String!, $areaType: AreaType!, $districtID: Int, $siteID: Int, $deviceID: Int, $sources: [String], $fromTime: String, $toTime: String, $scale: String) {
+query LineChartData($token: String!, $areaType: AreaType!, $districtID: Int, $siteID: Int, $deviceID: Int, $sources: [String], $fromTime: String, $toTime: String, $scale: String) {
   Config {
     indicatorTypes(token: $token) {
       id
@@ -131,34 +91,198 @@ query ModuleListData($token: String!, $areaType: AreaType!, $districtID: Int, $s
   }
   LineChartSources(token: $token, areaType: $areaType, districtID: $districtID, siteID: $siteID, deviceID: $deviceID)
 }
-{
-  "token": "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a",
-  "areaType": "Device",
-  "deviceID": 37,
-  "siteID": 12
+
+query DistrictListData($token: String!) {
+  Company(token: $token) {
+    id
+    district: children {
+      id
+      name
+      areaType
+      site: children {
+        id
+        name
+        areaType
+      }
+    }
+  }
 }
 
-query aaa {
-  Company(token: "c482dc1c-1c18-4ca6-be26-dd69cb9ed79a") {
+query DistrictDetailData($token: String!, $districtID: Int!) {
+  Company(token: $token) {
     id
-    districts: children {
+    district: children(id: $districtID) {
       id
-      sites: children {
+      name
+      pie {
+        total
+        current
+        rate
+        unit
+      }
+      site: children {
         id
+        name
+      }
+    }
+  }
+}
+
+query DeviceListData($token: String!, $districtID: Int!, $siteID: Int!) {
+  Company(token: $token) {
+    id
+    district: children(id: $districtID) {
+      id
+      site: children(id: $siteID) {
+        id
+        name
         cabinets {
           id
+          name
+          type
           switches {
             id
-            lineChart {
-              source
-              lineChart {
-                time
-                value
-              }
-            }
+            isOn
+            name
           }
         }
       }
     }
   }
 }
+
+query DeviceDetailData($token: String!, $districtID: Int!, $siteID: Int!, $cabinetID: Int!, $deviceID: Int!) {
+  Config {
+    indicatorTypes(token: $token) {
+      id
+      key
+      name
+      unit
+    }
+  }
+  Company(token: $token) {
+    id
+    district: children(id: $districtID) {
+      id
+      site: children(id: $siteID) {
+        id
+        cabinets(id: $cabinetID) {
+          id
+          switches(id: $deviceID) {
+            id
+            isOn
+            name
+            unreadAlarmAmount
+            alarmInfos {
+              id
+              deviceName
+              code
+            }
+            realtimeData {
+              code
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+  List: Company(token: $token) {
+    id
+    district: children(id: $districtID) {
+      id
+      site: children(id: $siteID) {
+        id
+        name
+        cabinets(id: $cabinetID) {
+          id
+          switches {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+}
+
+query AlarmData(
+    $token: String!,
+    $areaType: AreaType!,
+    $districtID: Int,
+    $siteID: Int,
+    $gatewayID: Int,
+    $cabinetID: Int,
+    $deviceID: Int,
+    $pagesize: Int,
+    $pageIndex: Int,
+    $orderBy: OrderByType,
+    $fromTime: String,
+    $toTime: String,
+    $alarmCodes: [String]
+  ) {
+  User(token: $token) {
+    id
+    name
+    companyId
+  }
+  Config {
+    alarmTypes {
+      code
+      label
+    }
+  }
+  Alarm(
+    token: $token,
+    areaType: $areaType,
+    districtID: $districtID,
+    siteID: $siteID,
+    gatewayID: $gatewayID,
+    cabinetID: $cabinetID,
+    deviceID: $deviceID,
+    pagesize: $pagesize,
+    pageIndex: $pageIndex,
+    orderBy: $orderBy,
+    fromTime: $fromTime,
+    toTime: $toTime,
+    alarmCodes: $alarmCodes
+  ) {
+    id
+    code
+    timestamp
+    readed
+    confirmed
+    message
+
+    confirmedUserID
+    confirmedUserName
+    districtID
+    districtName
+    siteID
+    siteName
+    gatewayID
+    gatewayName
+    cabinetID
+    cabinetName
+    deviceID
+    deviceName
+  }
+}
+
+mutation getToken {
+  getToken(username: "User123456", password: "123456") {
+    token
+    error
+  }
+}
+
+fragment switchInfo on SwitchType {
+  id,
+  name,
+  isOn,
+  alarmInfos(pagesize: $size) {
+    id,
+    message,
+  }
+}
+
