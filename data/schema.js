@@ -104,22 +104,6 @@ type CompanyType implements PowerEntityType {
   coordinate: String
   companyId: Int
 
-  alarmInfos(
-    token: String!,
-    areaType: AreaType!,
-    districtID: Int,
-    siteID: Int,
-    gatewayID: Int,
-    cabinetID: Int,
-    deviceID: Int,
-    pagesize: Int,
-    pageIndex: Int,
-    orderBy: OrderByType,
-    fromTime: String,
-    toTime: String,
-    alarmCodes: [String],
-    confirmed: String,
-  ): [AlarmInfoType],
   unreadAlarmAmount: Int
   unConfirmedAlarmAmount: Int
   pie: PieGraphType!
@@ -158,22 +142,6 @@ type SiteType implements PowerEntityType {
   siteId: Int
 
   pie: PieGraphType!
-  alarmInfos(
-    token: String!,
-    areaType: AreaType!,
-    districtID: Int,
-    siteID: Int,
-    gatewayID: Int,
-    cabinetID: Int,
-    deviceID: Int,
-    pagesize: Int,
-    pageIndex: Int,
-    orderBy: OrderByType,
-    fromTime: String,
-    toTime: String,
-    alarmCodes: [String],
-    confirmed: String,
-  ): [AlarmInfoType],
   unreadAlarmAmount: Int
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
@@ -275,9 +243,9 @@ type CabinetType {
   address: String! # 「1-2-1-3」 这样的柜号
   children: [CabinetType]
   devices: [DeviceType]
-  switches(id: Int): [SwitchType] # 似乎开关也是设备的一种，我得去问清楚
-  sortId: String # 有时间问问加这个是想干嘛
-  wire: String # 意义不明
+  switches(id: Int): [SwitchType] # 开关也是设备的一种，而且目前设备主要显示里面的开关
+  sortId: String # 用来在列表显示多个柜子的时候好看地排序
+  wire: String # 进线也有名字，这就是它的名字
 
   districtId: Int
   siteId: Int
@@ -340,8 +308,6 @@ export const resolvers = {
         name: await context.User.getMetaData('companyName', token),
         address: await context.User.getMetaData('address', token),
         areaType: 'Company',
-        alarmInfos: await context.PowerEntity.getCompanyAlarm(token),
-        unreadAlarm: await context.PowerEntity.getCompanyAlarmUnread(token),
         pie: await context.PowerEntity.getCompanyPie(token),
         children: await context.PowerEntity.getAllDistrictData(token),
         token
@@ -477,16 +443,8 @@ export const resolvers = {
     areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    alarmInfos(powerEntity, args, context) {
-      if (isEmpty(args)) {
-        return powerEntity.alarmInfos;
-      }
-      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
-      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getCompanyAlarm(powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
-    },
     unreadAlarmAmount(powerEntity, args, context) {
-      return powerEntity.unreadAlarm;
+      return context.PowerEntity.getCompanyAlarmUnread(powerEntity.id, powerEntity.token);
     },
     unConfirmedAlarmAmount(powerEntity, args, context) {
       return context.PowerEntity.getCompanyAlarmUnconfirmed(powerEntity.id, powerEntity.token);

@@ -106,12 +106,12 @@ export class PowerEntity {
 
   getCompanyAlarmUnconfirmed(companyID, token) {
     return this.connector.get(`/api/company/${companyID}/alarm/overview`, token)
-      .then(obj => obj.unConfirmedCount);;
+      .then(obj => obj.unConfirmedCount);
   }
 
-  getCompanyAlarmUnread(token): Promise<number> {
-    return this.connector.get('/api/alarm/unread_quantity', token)
-      .then(obj => obj.count);
+  getCompanyAlarmUnread(companyID, token): Promise<number> {
+    return this.connector.get(`/api/company/${companyID}/alarm/overview`, token)
+      .then(obj => obj.unReadedCount);
   }
 
   confirmAlarm(companyID, alarmID, token) {
