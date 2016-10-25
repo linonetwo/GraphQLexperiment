@@ -521,11 +521,6 @@ export const resolvers = {
     areaType(powerEntity, args, context) {
       return powerEntity.areaType;
     },
-    alarmInfos(powerEntity, args, context) {
-      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
-      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getSiteAlarm(powerEntity.id, powerEntity.token, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
-    },
     unreadAlarmAmount(powerEntity, args, context) {
       return context.PowerEntity.getSiteAlarmUnreadAmount(powerEntity.id, powerEntity.token);
     },
