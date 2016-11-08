@@ -169,7 +169,7 @@ export class PowerEntity {
     return alarms;
   }
 
-  static async getCompanyLineChartSources(token) {
+  async getCompanyLineChartSources(token) {
     // 目前还只显示厂区负荷一根线
     return ['companyLoad'];
   }
@@ -188,7 +188,7 @@ export class PowerEntity {
     return companyChartList;
   }
 
-  static async getDistrictLineChartSources(districtID, token) {
+  async getDistrictLineChartSources(districtID, token) {
     // 目前还只显示厂区负荷一根线
     return ['districtLoad'];
   }
@@ -293,7 +293,7 @@ export class PowerEntity {
 }
 
 export class FortuneCookie {
-  static async getFortuneCookie() {
+  async getFortuneCookie() {
     try {
       const response = await fetch('http://fortunecookieapi.com/v1/cookie');
       const [{ fortune: { message: fortuneCookie } }] = await response.json();

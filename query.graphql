@@ -1,6 +1,6 @@
 {
   "token": "fbe3ec12-6436-4504-a61f-ea26176b9580",
-  "districtID": 8, "siteID": 12, "cabinetID": 50, "deviceID": 37,
+  "districtID": 13, "siteID": 18, "cabinetID": 50, "deviceID": 37,
 	"areaType": "Company", "fromTime": "2016-10-20", "toTime": "2016-10-23"
 }
 query MainPageData($token: String!) {
@@ -276,13 +276,4 @@ mutation getToken {
   }
 }
 
-fragment switchInfo on SwitchType {
-  id,
-  name,
-  isOn,
-  alarmInfos(pagesize: $size) {
-    id,
-    message,
-  }
-}
 
