@@ -1,0 +1,278 @@
+schema {
+  query: RootQuery
+  mutation: RootMutation
+}
+
+type RootMutation {
+  getToken(username: String!, password: String!): TokenType
+  confirmAlarm(companyID: Int!, alarmID: Int!, token: String!): ConfirmedAlarmType! # return confirmed userName
+}
+
+type TokenType {
+  token: String
+  error: String
+}
+
+type RootQuery {
+  FortuneCookie: String
+  Config: ConfigType
+  User(token: String!): UserType
+  Company(token: String!): CompanyType
+  Alarm(
+    token: String!,
+    areaType: AreaType!,
+    districtID: Int,
+    siteID: Int,
+    gatewayID: Int,
+    cabinetID: Int,
+    deviceID: Int,
+    pagesize: Int,
+    pageIndex: Int,
+    orderBy: OrderByType,
+    fromTime: String,
+    toTime: String,
+    alarmCodes: [String],
+    confirmed: String,
+  ): [AlarmInfoType]
+  LineChart(token: String!, areaType: AreaType!, sources: [String], districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int, fromTime: String, toTime: String, scale: String): [LineChartListType]!
+  LineChartSources(token: String!, areaType: AreaType!, districtID: Int, siteID: Int, gatewayID: Int, cabinetID: Int, deviceID: Int): [String]!
+}
+
+# /api/admin/config
+# 供后台管理用的数据端点，此处只取 alarmtypes 用
+type ConfigType {
+  alarmTypes: [AlarmCodeType!]
+  indicatorTypes(token: String!): [IndicatorType!]
+}
+
+# /api/admin/config
+# 用于设备出问题告警的类型代码与它的实际意义之间的转换
+type AlarmCodeType {
+  code: String! # 告警类型代码，目前实际上是数字
+  label: String! # 给人看的告警信息
+}
+
+interface NameType {
+  id: Int!
+  name: String
+}
+
+type ConfirmedAlarmType implements NameType {
+  id: Int!
+  name: String!
+  time: String
+  succeed: Boolean
+}
+
+# /api/account/whoami
+type UserType implements NameType {
+  logined: Boolean
+  token: String
+
+  id: Int!
+  name: String
+
+  companyId: Int
+  companyName: String
+  departmentId: Int
+  departmentName: String
+  role: String
+}
+
+
+# /api/info/entry  /api/data/site/{id}/overview
+# 厂区信息，说明还有它有哪些变电站或子厂区，厂区有自己的饼图数据
+# 同时也能表示变电站的数据，可以包括饼图和进线列表等数据
+interface PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+
+  pie: PieGraphType!
+}
+
+type CompanyType implements PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+
+  unreadAlarmAmount: Int
+  unConfirmedAlarmAmount: Int
+  pie: PieGraphType!
+  children(id: Int): [DistrictType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], scale: String): [LineChartListType]
+}
+
+type DistrictType implements PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+  coordinate: String
+  companyId: Int
+  districtId: Int
+  gatewayID: Int
+
+  pie: PieGraphType!
+  children(id: Int): [SiteType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], scale: String): [LineChartListType]
+}
+
+type SiteType implements PowerEntityType {
+  id: Int!
+  name: String!
+
+  # ↓ 比较无关紧要的信息 
+  address: String
+  areaType: AreaType!
+  companyId: Int
+  districtId: Int
+  siteId: Int
+
+  pie: PieGraphType!
+  unreadAlarmAmount: Int
+  infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
+  wires: [WireType]
+  cabinets(id: Int): [CabinetType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType] 
+}
+
+
+enum AreaType {
+  Company
+  District
+  Site
+  Cabinet
+  Device
+}
+
+enum OrderByType {
+  time
+  name
+  type
+  count
+}
+
+type IndicatorType {
+  id: Int!,
+  key: String
+  name: String!
+  unit: String
+}
+
+type LineChartListType {
+  source: String!
+  lineChart: [LineChartType]!
+}
+
+type LineChartType {
+  time: String!
+  value: String
+}
+
+# /api/alarm/site/{id}?pz=20&pi=1&o=time /api/alarm/device/{id}?pagesize=20&pageindex=1
+# 一条告警信息
+type AlarmInfoType {
+  id: Int! # 告警ID
+  code: String! # 警告编号 实际上是一个数字
+  timestamp: String! # 警告时间，类似「2016-07-01 00:00:00」
+  readed: Boolean! # 已读
+  confirmed: Boolean! # 已确认
+  message: String
+
+  confirmedUserID: Int
+  confirmedUserName: String
+  districtID: Int # 厂区ID
+  districtName: String # 厂区名称
+  siteID: Int # 变电站ID
+  siteName: String # 变电站名称
+  gatewayID: Int # 网关ID
+  gatewayName: String # 网关名称
+  cabinetID: Int # 设备所处机柜的全局唯一ID
+  cabinetName: String # 设备所处机柜的名称
+  deviceID: Int # 设备的全局唯一ID
+  deviceName: String # 设备的名称
+}
+
+# /api/data/index/pie
+type PieGraphType {
+  total: Int! # 当前负荷，受权限控制影响，此处可能是0
+  current: Int! # 总额定负荷，受权限控制影响，此处可能是0
+  rate: String
+  unit: String! # 客户想使用的单位
+}
+
+# /api/data/site/{id}/overview
+# 通用的显示格式，用于进线和变电站
+type InfoType {
+  name: String
+  code: Int # 用于表示这个数据是啥
+  value: Float # 一般用于计算
+}
+
+# /api/data/site/{id}/overview
+# 每个变电站都会有进线，需要显示它们的负载
+type WireType {
+  name: String! # 就是数据源中的 wire，显示「进线1」这样的线名
+  current: Int # 当前负荷
+  total: Int! # 能承载的总负荷
+  unit: String!
+  deviceId: Int!
+  cabinetID: Int!
+  indicators: [InfoType]! # 「有功电度」、「无功电度」什么的
+}
+
+# /api/info/site/{id}/cabinets
+type CabinetType {
+  id: Int!
+  name: String! # 柜子名
+  type: String! # 「d01」这样的柜子类型
+  address: String! # 「1-2-1-3」 这样的柜号
+  children: [CabinetType]
+  devices: [DeviceType]
+  switches(id: Int): [SwitchType] # 开关也是设备的一种，而且目前设备主要显示里面的开关
+  sortId: String # 用来在列表显示多个柜子的时候好看地排序
+  wire: String # 进线也有名字，这就是它的名字
+
+  districtId: Int
+  siteId: Int
+  gatewayId: Int
+  cabinetId: Int
+  companyId: Int
+}
+
+# /api/info/site/{id}/cabinets  /api/data/device/{id}/realtime
+interface DeviceType {
+  id: Int!
+  name: String! # 给设备取的名字
+  realtimeData: [InfoType!] # 设备的实时数据
+  unreadAlarmAmount: Int
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType]
+}
+
+# /api/data/site/{id}/cabinets/switches
+# 变电站下的每个柜子都有一个到多个开关
+type SwitchType implements DeviceType {
+  id: Int!
+  name: String! # 给设备取的名字
+  realtimeData: [InfoType!] # 设备的实时数据
+  unreadAlarmAmount: Int
+  alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]
+  isOn: Boolean! # 开还是关，后端叫它 value
+  lineChartSources(id: Int): [String]
+  lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType]
+}
+

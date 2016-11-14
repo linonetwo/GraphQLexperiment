@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { apolloExpress, graphiqlExpress } from 'apollo-server';
 import { makeExecutableSchema } from 'graphql-tools';
-import { typeDefinitions as typeDefs, resolvers } from './data/schema';
+import { resolvers } from './data/resolvers';
 import Power51Connector from './data/Poser51Connector';
 import { User, Config, PowerEntity, FortuneCookie } from './data/Model';
 
@@ -21,6 +21,8 @@ require('babel-register')(config);
 const serverConnector = new Power51Connector();
 
 const GRAPHQL_PORT = 8964;
+
+const typeDefs = fs.readFileSync('./data/schema.graphql', 'utf8');
 
 const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
 const graphQLServer = express();
