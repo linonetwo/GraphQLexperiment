@@ -58,7 +58,6 @@ export class User {
   async getAllMetaData(token) {
     const metaData = await this.connector.get('/api/account/whoami', token);
     this.metaData[token] = metaData;
-
     return this.metaData[token];
   }
 

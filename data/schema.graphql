@@ -72,7 +72,6 @@ type UserType implements NameType {
   id: Int!
   name: String
 
-  companyId: Int
   companyName: String
   departmentId: Int
   departmentName: String
@@ -275,4 +274,3 @@ type SwitchType implements DeviceType {
   lineChartSources(id: Int): [String]
   lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType]
 }
-

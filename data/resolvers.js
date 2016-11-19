@@ -104,9 +104,6 @@ export const resolvers = {
     name({ token }, args, context) {
       return context.User.getMetaData('name', token);
     },
-    companyId({ token }, args, context) {
-      return context.User.getMetaData('companyId', token);
-    },
     companyName({ token }, args, context) {
       return context.User.getMetaData('companyName', token);
     },
