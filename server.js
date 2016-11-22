@@ -2,6 +2,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { apolloExpress, graphiqlExpress } from 'apollo-server';
 import { makeExecutableSchema } from 'graphql-tools';
+import OpticsAgent from 'optics-agent';
+
 import { resolvers } from './data/resolvers';
 import Power51Connector from './data/Poser51Connector';
 import { User, Config, PowerEntity, FortuneCookie } from './data/Model';
@@ -25,13 +27,21 @@ const GRAPHQL_PORT = 8964;
 const typeDefs = fs.readFileSync('./data/schema.graphql', 'utf8');
 
 const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
+
+OpticsAgent.configureAgent({ apiKey: 'service:graphqlexperiment:GJEaI24XTHVSQ5G2uAG7BQ' })
+OpticsAgent.instrumentSchema(executableSchema);
+
+
 const graphQLServer = express();
 graphQLServer.use(bodyParser.json())
-graphQLServer.use('/graphql', apolloExpress(() => ({
+
+graphQLServer.use('/graphql', OpticsAgent.middleware());
+graphQLServer.use('/graphql', apolloExpress((req) => ({
   graphiql: true,
   pretty: true,
   schema: executableSchema,
   context: {
+    opticsContext: OpticsAgent.context(req),
     Config: new Config({ connector: serverConnector }),
     User: new User({ connector: serverConnector }),
     PowerEntity: new PowerEntity({ connector: serverConnector }),

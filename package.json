@@ -32,6 +32,7 @@
     "moment": "^2.14.1",
     "node-fetch": "^1.6.0",
     "node-uuid": "^1.4.7",
+    "optics-agent": "^1.0.2",
     "pokemon-random-name": "^1.0.4"
   },
   "devDependencies": {
