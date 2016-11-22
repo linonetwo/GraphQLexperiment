@@ -72,6 +72,7 @@ type UserType implements NameType {
   id: Int!
   name: String
 
+  companyId: Int
   companyName: String
   departmentId: Int
   departmentName: String
@@ -100,6 +101,8 @@ type CompanyType implements PowerEntityType {
   # ↓ 比较无关紧要的信息 
   address: String
   areaType: AreaType!
+  coordinate: String
+  companyId: Int
 
   unreadAlarmAmount: Int
   unConfirmedAlarmAmount: Int
