@@ -22,16 +22,7 @@ export const resolvers = {
       return { token };
     },
     async Company(root, { token }, context) {
-      const powerEntity = {
-        id: await context.User.getMetaData('companyId', token),
-        name: await context.User.getMetaData('companyName', token),
-        address: await context.User.getMetaData('address', token),
-        areaType: 'Company',
-        pie: await context.PowerEntity.getCompanyPie(token),
-        children: await context.PowerEntity.getAllDistrictData(token),
-        token
-      };
-      return powerEntity;
+      return { token };
     },
     Alarm(root, { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs }, context) {
       const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
@@ -131,11 +122,11 @@ export const resolvers = {
     },
   },
   PowerEntityType: {
-    id(powerEntity, args, context) {
-      return powerEntity.id;
+    id({ token }, args, context) {
+      return context.User.getMetaData('companyId', token);
     },
-    areaType(powerEntity, args, context) {
-      return powerEntity.areaType;
+    areaType({ areaType }, args, context) {
+      return areaType;
     },
     pie(powerEntity, args, context) {
       return powerEntity.pie ? powerEntity.pie : {
@@ -147,29 +138,25 @@ export const resolvers = {
     },
   },
   CompanyType: {
-    id(powerEntity, args, context) {
-      return powerEntity.id;
+    id({ token }, args, context) {
+      return context.User.getMetaData('companyId', token);
     },
-    name(powerEntity, args, context) {
-      return powerEntity.name;
+    name({ token }, args, context) {
+      return context.User.getMetaData('companyName', token);
     },
-    coordinate(powerEntity, args, context) {
-      return powerEntity.coordinate;
+    areaType({ token }, args, context) {
+      return 'Company';
     },
-    companyId(powerEntity, args, context) {
-      return powerEntity.companyId;
+    async unreadAlarmAmount({ token }, args, context) {
+      const companyID = await context.User.getMetaData('companyId', token);
+      return context.PowerEntity.getCompanyAlarmUnread(companyID, token);
     },
-    areaType(powerEntity, args, context) {
-      return powerEntity.areaType;
+    async unConfirmedAlarmAmount({ token }, args, context) {
+      const companyID = await context.User.getMetaData('companyId', token);
+      return context.PowerEntity.getCompanyAlarmUnconfirmed(companyID, token);
     },
-    unreadAlarmAmount(powerEntity, args, context) {
-      return context.PowerEntity.getCompanyAlarmUnread(powerEntity.id, powerEntity.token);
-    },
-    unConfirmedAlarmAmount(powerEntity, args, context) {
-      return context.PowerEntity.getCompanyAlarmUnconfirmed(powerEntity.id, powerEntity.token);
-    },
-    async pie(powerEntity, args, context) {
-      const pie = await powerEntity.pie;
+    async pie({ token }, args, context) {
+      const pie = await context.PowerEntity.getCompanyPie(token);
       return pie || {
         current: 0,
         rate: '0%',
@@ -177,14 +164,25 @@ export const resolvers = {
         unit: 'kw',
       };
     },
-    lineChartSources(powerEntity, args, context) {
-      return context.PowerEntity.getCompanyLineChartSources(powerEntity.token);
+    lineChartSources({ token }, args, context) {
+      return context.PowerEntity.getCompanyLineChartSources(token);
     },
-    lineChart(powerEntity, { sources, scale }, context) {
-      return context.PowerEntity.getCompanyLineChart(powerEntity.token, sources, scale);
+    lineChart({ token }, { sources, scale }, context) {
+      return context.PowerEntity.getCompanyLineChart(token, sources, scale);
     },
-    children(powerEntity, { id }, context) {
-      let childrenWithToken = powerEntity.children.map(district => Object.assign({}, district, { token: powerEntity.token }));
+    async sites({ token }, { id }, context) {
+      const children = await context.PowerEntity.getAllDistrictData(token);
+      const sites = [];
+      for (const district of children) {
+        sites.push(district.children);
+      }
+      let sitesWithToken = sites.map(site => Object.assign({}, site, { token }));
+      console.log(sitesWithToken);
+      return flatten(sitesWithToken);
+    },
+    async children({ token }, { id }, context) {
+      const children = await context.PowerEntity.getAllDistrictData(token);
+      let childrenWithToken = children.map(district => Object.assign({}, district, { token }));
       if (id) {
         childrenWithToken = [find(childrenWithToken, matchesProperty('id', id))];
       }
@@ -344,9 +342,10 @@ export const resolvers = {
     children: property('children'),
     async switches(cabinet, { id }, context) {
       const switchGroup = await context.PowerEntity.getCabinetSwitches(cabinet.siteId, cabinet.id, cabinet.token);
-      let switchesWithToken = switchGroup.map(aswitch => Object.assign({}, aswitch, { token: cabinet.token }));
+      let switchesWithToken = switchGroup.map(aswitch => ({ ...aswitch, token: cabinet.token }));
       if (id) {
-        switchesWithToken = [find(switchesWithToken, matchesProperty('id', id))];
+        const switchWithThisID = find(switchesWithToken, matchesProperty('id', id));
+        switchesWithToken = switchWithThisID ? [switchWithThisID] : [];
       }
       return switchesWithToken;
     },

@@ -1,8 +1,3 @@
-{
-  "token": "fbe3ec12-6436-4504-a61f-ea26176b9580",
-  "districtID": 13, "siteID": 18, "cabinetID": 50, "deviceID": 37,
-	"areaType": "Company", "fromTime": "2016-10-20", "toTime": "2016-10-23"
-}
 query MainPageData($token: String!) {
   User(token: $token) {
     id
@@ -27,14 +22,6 @@ query MainPageData($token: String!) {
 }
 
 query SiteDetailData($token: String!, $districtID: Int!, $siteID: Int!) {
-  Config {
-    indicatorTypes(token: $token) {
-      id
-      key
-      name
-      unit
-    }
-  }
   Company(token: $token) {
     id
     district: children(id: $districtID) {
@@ -69,6 +56,14 @@ query SiteDetailData($token: String!, $districtID: Int!, $siteID: Int!) {
         }
         areaType
       }
+    }
+  }
+  Config {
+    indicatorTypes(token: $token) {
+      id
+      key
+      name
+      unit
     }
   }
 }
@@ -221,17 +216,6 @@ query AlarmData(
     $toTime: String,
     $alarmCodes: [String]
   ) {
-  User(token: $token) {
-    id
-    name
-    companyId
-  }
-  Config {
-    alarmTypes {
-      code
-      label
-    }
-  }
   Alarm(
     token: $token,
     areaType: $areaType,
@@ -267,10 +251,21 @@ query AlarmData(
     deviceID
     deviceName
   }
+  User(token: $token) {
+    id
+    name
+    companyId
+  }
+  Config {
+    alarmTypes {
+      code
+      label
+    }
+  }
 }
 
-mutation getToken {
-  getToken(username: "User123456", password: "123456") {
+mutation GetToken($userName: String!, $passWord: String!) {
+  getToken(username: $userName, password: $passWord) {
     token
     error
   }

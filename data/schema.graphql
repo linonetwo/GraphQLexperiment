@@ -101,8 +101,9 @@ type CompanyType implements PowerEntityType {
   # ↓ 比较无关紧要的信息 
   address: String
   areaType: AreaType!
-  coordinate: String
   companyId: Int
+
+  sites: [SiteType]
 
   unreadAlarmAmount: Int
   unConfirmedAlarmAmount: Int
