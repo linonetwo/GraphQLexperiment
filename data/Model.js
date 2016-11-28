@@ -54,10 +54,10 @@ export class User {
     }
   }
 
-
   async getAllMetaData(token) {
     const metaData = await this.connector.get('/api/account/whoami', token);
     this.metaData[token] = metaData;
+
     return this.metaData[token];
   }
 
@@ -85,8 +85,13 @@ export class User {
 
 
 export class PowerEntity {
-  constructor({ connector }) {
+  constructor({ connector, ezConnector }) {
     this.connector = connector;
+    this.ezConnector = ezConnector;
+  }
+
+  getEZToken() {
+    return this.ezConnector.getEZToken();
   }
 
   async getAllDistrictData(token) {
@@ -124,6 +129,15 @@ export class PowerEntity {
   async getAllSiteOverview(siteID, token) {
     const { infos, wires } = await this.connector.get(`/api/data/site/${siteID}/overview`, token);
     return { infos, wires };
+  }
+
+  async getSiteWebcams(siteID, token) {
+    try {
+      const webcams = await this.connector.get(`/api/admin/get_webcams_of_site?id=${siteID}`, token);
+      return webcams;
+    } catch (error) {
+      return error;
+    }
   }
 
   getSitePie(siteID, token) {

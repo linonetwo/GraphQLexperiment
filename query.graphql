@@ -1,3 +1,15 @@
+query CameraData($token: String!, $districtID: Int!, $siteID: Int!) {
+  Company(token: $token) {
+    id
+    district: children(id: $districtID) {
+      id
+      site: children(id: $siteID) {
+        cameras
+      }
+    }
+  }
+}
+
 query MainPageData($token: String!) {
   User(token: $token) {
     id
@@ -201,43 +213,14 @@ query DeviceDetailData($token: String!, $districtID: Int!, $siteID: Int!, $cabin
   }
 }
 
-query AlarmData(
-    $token: String!,
-    $areaType: AreaType!,
-    $districtID: Int,
-    $siteID: Int,
-    $gatewayID: Int,
-    $cabinetID: Int,
-    $deviceID: Int,
-    $pagesize: Int,
-    $pageIndex: Int,
-    $orderBy: OrderByType,
-    $fromTime: String,
-    $toTime: String,
-    $alarmCodes: [String]
-  ) {
-  Alarm(
-    token: $token,
-    areaType: $areaType,
-    districtID: $districtID,
-    siteID: $siteID,
-    gatewayID: $gatewayID,
-    cabinetID: $cabinetID,
-    deviceID: $deviceID,
-    pagesize: $pagesize,
-    pageIndex: $pageIndex,
-    orderBy: $orderBy,
-    fromTime: $fromTime,
-    toTime: $toTime,
-    alarmCodes: $alarmCodes
-  ) {
+query AlarmData($token: String!, $areaType: AreaType!, $districtID: Int, $siteID: Int, $gatewayID: Int, $cabinetID: Int, $deviceID: Int, $pagesize: Int, $pageIndex: Int, $orderBy: OrderByType, $fromTime: String, $toTime: String, $alarmCodes: [String]) {
+  Alarm(token: $token, areaType: $areaType, districtID: $districtID, siteID: $siteID, gatewayID: $gatewayID, cabinetID: $cabinetID, deviceID: $deviceID, pagesize: $pagesize, pageIndex: $pageIndex, orderBy: $orderBy, fromTime: $fromTime, toTime: $toTime, alarmCodes: $alarmCodes) {
     id
     code
     timestamp
     readed
     confirmed
     message
-
     confirmedUserID
     confirmedUserName
     districtID
@@ -270,5 +253,3 @@ mutation GetToken($userName: String!, $passWord: String!) {
     error
   }
 }
-
-

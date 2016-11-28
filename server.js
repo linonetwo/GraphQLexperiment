@@ -5,7 +5,10 @@ import { makeExecutableSchema } from 'graphql-tools';
 import OpticsAgent from 'optics-agent';
 
 import { resolvers } from './data/resolvers';
-import Power51Connector from './data/Poser51Connector';
+
+import Power51Connector from './data/Power51Connector';
+import EZConnector from './data/EZConnector';
+
 import { User, Config, PowerEntity, FortuneCookie } from './data/Model';
 
 const fs = require('fs');
@@ -21,6 +24,7 @@ try {
 require('babel-register')(config);
 
 const serverConnector = new Power51Connector();
+const ezConnector = new EZConnector();
 
 const GRAPHQL_PORT = 8964;
 
@@ -44,7 +48,7 @@ graphQLServer.use('/graphql', apolloExpress((req) => ({
     opticsContext: OpticsAgent.context(req),
     Config: new Config({ connector: serverConnector }),
     User: new User({ connector: serverConnector }),
-    PowerEntity: new PowerEntity({ connector: serverConnector }),
+    PowerEntity: new PowerEntity({ connector: serverConnector, ezConnector }),
     FortuneCookie: new FortuneCookie(),
   },
 }))

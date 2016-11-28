@@ -176,7 +176,7 @@ export const resolvers = {
       for (const district of children) {
         sites.push(district.children);
       }
-      let sitesWithToken = sites.map(site => Object.assign({}, site, { token }));
+      const sitesWithToken = sites.map(site => Object.assign({}, site, { token }));
       console.log(sitesWithToken);
       return flatten(sitesWithToken);
     },
@@ -279,6 +279,13 @@ export const resolvers = {
         cabinetsWithToken = [find(cabinetsWithToken, matchesProperty('id', id))];
       }
       return cabinetsWithToken;
+    },
+    async cameras({ id, token }, args, context) {
+      const cameras = await context.PowerEntity.getSiteWebcams(id, token);
+      return cameras;
+    },
+    ezToken(powerEntity, { id }, context) {
+      return context.PowerEntity.getEZToken();
     },
     lineChartSources(powerEntity, args, context) {
       return context.PowerEntity.getSiteLineChartSources(powerEntity.id, powerEntity.token);

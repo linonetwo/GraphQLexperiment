@@ -146,6 +146,10 @@ type SiteType implements PowerEntityType {
   unreadAlarmAmount: Int
   infos: [InfoType] # 显示一些「本日最大负荷」、「本月最大负荷」、「告警数量」等信息
   wires: [WireType]
+
+  cameras: [String] # 该变电站下的摄像头
+  ezToken: String!
+
   cabinets(id: Int): [CabinetType]
   lineChartSources(id: Int): [String]
   lineChart(sources: [String], fromTime: String, toTime: String, scale: String): [LineChartListType] 
