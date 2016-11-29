@@ -345,17 +345,14 @@ export const resolvers = {
     name: property('name'),
     type: property('type'),
     address: property('address'),
-    devices: property('devices'),
-    children: property('children'),
-    async switches(cabinet, { id }, context) {
-      const switchGroup = await context.PowerEntity.getCabinetSwitches(cabinet.siteId, cabinet.id, cabinet.token);
-      let switchesWithToken = switchGroup.map(aswitch => ({ ...aswitch, token: cabinet.token }));
-      if (id) {
-        const switchWithThisID = find(switchesWithToken, matchesProperty('id', id));
-        switchesWithToken = switchWithThisID ? [switchWithThisID] : [];
-      }
-      return switchesWithToken;
+    async devices({ id: cabinetID, token }, { id: deviceID }, context) {
+      const deviceList = deviceID ?
+        await context.PowerEntity.getDeviceByID(cabinetID, deviceID, token)
+        :
+        await context.PowerEntity.getCabinetDevicesList(cabinetID, token);
+      return deviceList.map(aDevice => ({ ...aDevice, token }));
     },
+    children: property('children'),
     sortId: property('sortId'),
     wire: property('wire'),
     siteId: property('siteId'),
@@ -374,25 +371,6 @@ export const resolvers = {
       const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
       return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
     },
-    lineChartSources(device, args, context) {
-      return context.PowerEntity.getDeviceLineChartSources(device.id, device.token);
-    },
-    lineChart(device, { sources, fromTime, toTime, scale }, context) {
-      return context.PowerEntity.getDeviceLineChart(device.id, device.token, sources, fromTime, toTime, scale);
-    },
-  },
-  SwitchType: {
-    id: property('id'),
-    name: property('name'),
-    realtimeData(aswitch, args, context) {
-      return context.PowerEntity.getRealtimeData(aswitch.id, aswitch.token);
-    },
-    alarmInfos(powerEntity, args, context) {
-      const { token, areaType, districtID, siteID, gatewayID, cabinetID, deviceID, ...alarmArgs } = args;
-      const { pagesize, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed } = alarmArgs;
-      return context.PowerEntity.getDeviceAlarm(powerEntity.id, powerEntity.token, powerEntity.id, pageIndex, orderBy, fromTime, toTime, alarmCodes, confirmed, pagesize);
-    },
-    isOn: property('value'),
     lineChartSources(device, args, context) {
       return context.PowerEntity.getDeviceLineChartSources(device.id, device.token);
     },

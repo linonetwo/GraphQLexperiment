@@ -1,12 +1,12 @@
 {
-  "token": "6fcbca64-500a-414f-81d9-12b7c585f8ba",
-  "districtID": 11,
-  "siteID": 40,
-  "cabinetID": 94,
-  "deviceID": 147,
+  "token": "1d0bfead-869d-4701-bcdc-9030e40ed362",
+  "districtID": 33,
+  "siteID": 60,
+  "cabinetID": 99,
+  "deviceID": 158,
   "areaType": "Company",
-  "fromTime": "2016-10-21 11:31:29",
-  "toTime": "2016-12-23 11:31:29",
-  "userName": "power51appview",
-  "passWord": "123456"
+  "fromTime": "2016-11-19 11:31:29",
+  "toTime": "2016-12-19 11:31:29",
+  "userName": "dwycs",
+  "passWord": "dwycs"
 }

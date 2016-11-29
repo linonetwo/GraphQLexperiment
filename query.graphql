@@ -5,6 +5,7 @@ query CameraData($token: String!, $districtID: Int!, $siteID: Int!) {
       id
       site: children(id: $siteID) {
         cameras
+        ezToken
       }
     }
   }
@@ -147,10 +148,8 @@ query DeviceListData($token: String!, $districtID: Int!, $siteID: Int!) {
           id
           name
           type
-          switches {
+          devices {
             id
-            isOn
-            name
           }
         }
       }
@@ -159,14 +158,6 @@ query DeviceListData($token: String!, $districtID: Int!, $siteID: Int!) {
 }
 
 query DeviceDetailData($token: String!, $districtID: Int!, $siteID: Int!, $cabinetID: Int!, $deviceID: Int!) {
-  Config {
-    indicatorTypes(token: $token) {
-      id
-      key
-      name
-      unit
-    }
-  }
   Company(token: $token) {
     id
     district: children(id: $districtID) {
@@ -175,21 +166,18 @@ query DeviceDetailData($token: String!, $districtID: Int!, $siteID: Int!, $cabin
         id
         cabinets(id: $cabinetID) {
           id
-          switches(id: $deviceID) {
-            id
-            isOn
-            name
-            unreadAlarmAmount
-            alarmInfos {
-              id
-              deviceName
-              code
-            }
+					devices(id: $deviceID) {
+					  id
             realtimeData {
+              name
               code
               value
             }
-          }
+            alarmInfos {
+              id
+            }
+            lineChartSources
+					}
         }
       }
     }
@@ -203,12 +191,20 @@ query DeviceDetailData($token: String!, $districtID: Int!, $siteID: Int!, $cabin
         name
         cabinets(id: $cabinetID) {
           id
-          switches {
+          devices {
             id
             name
           }
         }
       }
+    }
+  }
+  Config {
+    indicatorTypes(token: $token) {
+      id
+      key
+      name
+      unit
     }
   }
 }

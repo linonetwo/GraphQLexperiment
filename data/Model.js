@@ -173,6 +173,16 @@ export class PowerEntity {
       .then(obj => obj.switches);
   }
 
+  getCabinetDevicesList(cabinetID, token) {
+    return this.connector.get(`/api/info/cabinet/${cabinetID}/devices`, token);
+  }
+
+  getDeviceByID(cabinetID, deviceID, token) {
+    return this.getCabinetDevicesList(cabinetID, token)
+      .then(list => find(list, device => device.id === deviceID))
+      .then(list => list ? [list] : []);
+  }
+
   getRealtimeData(deviceID, token) {
     return this.connector.get(`/api/data/device/${deviceID}/realtime`, token);
   }
