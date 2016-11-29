@@ -150,6 +150,8 @@ query DeviceListData($token: String!, $districtID: Int!, $siteID: Int!) {
           type
           devices {
             id
+            name
+            isOn
           }
         }
       }

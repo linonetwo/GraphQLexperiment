@@ -262,6 +262,7 @@ type CabinetType {
 type DeviceType {
   id: Int!
   name: String! # 给设备取的名字
+  isOn: Boolean! # 有开关量的设备才有此项，表示设备是否开启，默认为 on
   realtimeData: [InfoType!] # 设备的实时数据
   unreadAlarmAmount: Int
   alarmInfos(pagesize: Int, pageIndex: Int, orderBy: OrderByType, fromTime: String, toTime: String, alarmCode: String): [AlarmInfoType]

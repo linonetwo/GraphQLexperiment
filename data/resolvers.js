@@ -363,6 +363,7 @@ export const resolvers = {
   DeviceType: {
     id: property('id'),
     name: property('name'),
+    isOn: () => true,
     realtimeData(device, args, context) {
       return context.PowerEntity.getRealtimeData(device.id, device.token);
     },
