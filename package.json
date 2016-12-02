@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A playground for trying experiment graphQL feature, preparing for production.",
   "scripts": {
-    "start": "nodemon -e graphql,json,js --exec babel-node server.js",
+    "start": "nodemon -e graphql,json,js --exec babel-node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint ."
   },
@@ -33,7 +33,8 @@
     "node-fetch": "^1.6.3",
     "node-uuid": "^1.4.7",
     "optics-agent": "^1.0.3",
-    "pokemon-random-name": "^1.0.4"
+    "pokemon-random-name": "^1.0.4",
+    "power51-graphql-wrapper": "^0.1.9"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",

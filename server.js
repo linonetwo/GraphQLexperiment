@@ -1,56 +1,22 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import { apolloExpress, graphiqlExpress } from 'apollo-server';
-import { makeExecutableSchema } from 'graphql-tools';
-import OpticsAgent from 'optics-agent';
 
-import { resolvers } from './data/resolvers';
-
-import Power51Connector from './data/Power51Connector';
-import EZConnector from './data/EZConnector';
-
-import { User, Config, PowerEntity, FortuneCookie } from './data/Model';
-
-const fs = require('fs');
-const babelrc = fs.readFileSync('./.babelrc');
-let config;
-
-try {
-  config = JSON.parse(babelrc);
-} catch (err) {
-  console.error('==>     ERROR: Error parsing your .babelrc.');
-  console.error(err);
-}
-require('babel-register')(config);
-
-const serverConnector = new Power51Connector();
-const ezConnector = new EZConnector();
+import { executableSchema, defaultContext } from 'power51-graphql-wrapper';
 
 const GRAPHQL_PORT = 8964;
-
-const typeDefs = fs.readFileSync('./data/schema.graphql', 'utf8');
-
-const executableSchema = makeExecutableSchema({ typeDefs, resolvers });
-
-OpticsAgent.configureAgent({ apiKey: 'service:graphqlexperiment:GJEaI24XTHVSQ5G2uAG7BQ' })
-OpticsAgent.instrumentSchema(executableSchema);
-
 
 const graphQLServer = express();
 graphQLServer.use(bodyParser.json())
 
-graphQLServer.use('/graphql', OpticsAgent.middleware());
 graphQLServer.use('/graphql', apolloExpress((req) => ({
   graphiql: true,
   pretty: true,
   schema: executableSchema,
-  context: {
-    opticsContext: OpticsAgent.context(req),
-    Config: new Config({ connector: serverConnector }),
-    User: new User({ connector: serverConnector }),
-    PowerEntity: new PowerEntity({ connector: serverConnector, ezConnector }),
-    FortuneCookie: new FortuneCookie(),
-  },
+  context: defaultContext({
+    power51Config: { url: 'http://power51.grootapp.com:31328' },
+    ezConfig: { url: 'https://open.ys7.com/api/lapp/token/get', appKey: '93ce9b9a3bbd450ab7de2b0f9c111d32&appSecret=3c9713a3568bcd80f0d29ef6c5901ff2'},
+  })
 }))
 );
 
