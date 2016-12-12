@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { apolloExpress, graphiqlExpress } from 'apollo-server';
 
-import { executableSchema, defaultContext } from 'power51-graphql-wrapper';
+import { executableSchema, getDefaultContext } from 'power51-graphql-wrapper';
 
 const GRAPHQL_PORT = 8964;
 
@@ -13,8 +13,8 @@ graphQLServer.use('/graphql', apolloExpress((req) => ({
   graphiql: true,
   pretty: true,
   schema: executableSchema,
-  context: defaultContext({
-    power51Config: { url: 'http://power51.grootapp.com:31328' },
+  context: getDefaultContext({
+    power51Config: { url: 'http://power51.grootapp.com:31328/' },
     ezConfig: { url: 'https://open.ys7.com/api/lapp/token/get', appKey: '93ce9b9a3bbd450ab7de2b0f9c111d32&appSecret=3c9713a3568bcd80f0d29ef6c5901ff2'},
   })
 }))

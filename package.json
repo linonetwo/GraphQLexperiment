@@ -34,7 +34,7 @@
     "node-uuid": "^1.4.7",
     "optics-agent": "^1.0.3",
     "pokemon-random-name": "^1.0.4",
-    "power51-graphql-wrapper": "^0.1.9"
+    "power51-graphql-wrapper": "git+http://git.nanchao.org:3000/lindongwu/power51-graphql-wrapper"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
